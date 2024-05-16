@@ -51,7 +51,7 @@ export default {
   width: 446px;
   height: 256px;
   border-radius: 16px;
-  margin: 24px 12px 12px 0;
+  margin: 24px 12px 0 12px;
   border:0px;
   // margin-top: 24px;
   .list-image{
