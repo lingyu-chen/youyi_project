@@ -16,7 +16,7 @@
     export default {
         data() {
             return {
-                percentage:0.2,
+                percentage:0,
                 customColor: '#2400ff',
                 roundObj:{
                     isfalse:false,//控制滑动
@@ -29,9 +29,8 @@
         },
         //渲染到页面的时候
         mounted() {
-            
             this.$bus.$on('getInitialPercntage',(percentage)=>{
-                this.percentage = percentage
+                this.percentage = percentage*100
                 console.log("props RateValue:",this.percentage)
             })
         },
@@ -39,32 +38,32 @@
             this.$bus.$off('getInitialPercntage');
         },
         methods: {
-            downEvent(event)
-            {
-                this.roundObj.isfalse = true;
-                this.roundObj.clientx = event.clientX;
-                this.roundObj.offLeft = this.$refs.round.offsetLeft;
-                this.roundObj.maxValue = this.$refs.progress.offsetWidth - this.$refs.round.offsetWidth;
-                // console.log("this.$refs.progress.offsetWidth=",this.$refs.progress.width);
-                var _this = this;
-                // console.log("this.percentage1=",this.percentage)
-                this.$refs.progress.onmousemove = function(event)
-                {
-                    if(!_this.roundObj.isfalse)
-                        return;
-                        _this.roundObj.changeX = event.clientX;
-                    var moveX = Math.min(_this.roundObj.maxValue,Math.max(-2,_this.roundObj.offLeft+(_this.roundObj.changeX - _this.roundObj.clientx)));
-                    //移动超过进度条的宽度取最大宽
-                    // console.log("_this.roundObj=",_this.roundObj);
-                    _this.percentage = Math.round(Math.max(0,moveX/_this.roundObj.maxValue)*100);
-                    console.log("_this.percentage1=",_this.percentage);
-                    _this.$refs.round.style.left = _this.percentage+'%';
-                }
-            },      
-            upEvent(event)
-            {
-                this.roundObj.isfalse = false;
-            },
+            // downEvent(event)
+            // {
+            //     this.roundObj.isfalse = true;
+            //     this.roundObj.clientx = event.clientX;
+            //     this.roundObj.offLeft = this.$refs.round.offsetLeft;
+            //     this.roundObj.maxValue = this.$refs.progress.offsetWidth - this.$refs.round.offsetWidth;
+            //     // console.log("this.$refs.progress.offsetWidth=",this.$refs.progress.width);
+            //     var _this = this;
+            //     // console.log("this.percentage1=",this.percentage)
+            //     this.$refs.progress.onmousemove = function(event)
+            //     {
+            //         if(!_this.roundObj.isfalse)
+            //             return;
+            //             _this.roundObj.changeX = event.clientX;
+            //         var moveX = Math.min(_this.roundObj.maxValue,Math.max(-2,_this.roundObj.offLeft+(_this.roundObj.changeX - _this.roundObj.clientx)));
+            //         //移动超过进度条的宽度取最大宽
+            //         // console.log("_this.roundObj=",_this.roundObj);
+            //         _this.percentage = Math.round(Math.max(0,moveX/_this.roundObj.maxValue)*100);
+            //         console.log("_this.percentage1=",_this.percentage);
+            //         _this.$refs.round.style.left = _this.percentage+'%';
+            //     }
+            // },      
+            // upEvent(event)
+            // {
+            //     this.roundObj.isfalse = false;
+            // },
         },
         watch:{
             percentage(newVal,oldVal){
@@ -84,15 +83,14 @@
             background-color: #2400ff;
             cursor: pointer;
         }
-        /deep/.el-slider__button-wrapper{
+       .el-slider__button-wrapper{
             cursor: pointer;
-            .el-slider__button{
+        }
+        .el-slider__button{
                 background-color: #2400ff;
                 border: 0px;
                 cursor: pointer;
             }
-        }
-        
     }
 }
     /deep/.el-progress-bar__outer{
