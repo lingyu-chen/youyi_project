@@ -53,22 +53,13 @@
       <div class="history-record">
         <div class="history-text">历史记录</div>
         <div class="history-images">
-          <div class="img-hover" >
-            <img src="../assets/HistoryImg.png" alt="" class="history-img">
-            <div class="hover-gray">
+          <div class="img-hover" v-for="(item,index) in history" :key="index">
+            <img :src="item.preLink" alt="" class="history-img">
+            <div class="hover-gray-img">
+              <div class="hover-gray"></div>
               <img src="../assets/Vector.png" alt="" class="vector-img">
             </div>
           </div>
-          <!-- <div class="img-hover">
-            <img src="../assets/HistoryImg.png" alt="" class="history-img">
-            
-          </div>
-          <div class="img-hover">
-            <img src="../assets/HistoryImg.png" alt="" class="history-img">
-          </div>
-          <div class="img-hover">
-            <img src="../assets/HistoryImg.png" alt="" class="history-img">
-          </div> -->
         </div>
       </div>
       <div class="generation-scheme">
@@ -126,8 +117,8 @@ export default {
       //获取历史记录图片
       getHistoryList(this.$route.params.id).then(
         response => {
-          this.history = response.data;
-          console.log("获取历史记录图片请求成功了！",response);
+          this.history = response.data.history;
+          console.log("获取历史记录图片请求成功了！",this.history);
         },
         error => {
           console.log('获取详情请求失败了!',error);
@@ -290,26 +281,37 @@ export default {
             border-radius: 4px;
             border: 0px;
           }
-          .hover-gray{
+          .hover-gray-img{
             display: none;
             position: absolute;
-            width:100%;
-            height: 100%;
+            width:152px;
+            height: 154px;
             left: 0;
             top: 0;
-            background-color: #969696;
-            z-index: 998;
-            opacity: 0.41;
-            .vector-img{
+            border-radius: 4px;
+            .hover-gray{
               position: absolute;
-              left: 50%;
-              top: 50%;
-              transform: translate(-50%,-50%);
-              opacity: 100%;
-              z-index: 999;
+              left: 0;
+              top: 0;
+              width:152px;
+              height: 154px;
+              background-color: #969696;
+              z-index: 998;
+              opacity: 0.41;
+              border-radius: 4px;
+              color: #fff;
             }
+            .vector-img{
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%,-50%);
+                opacity: 100%;
+                z-index: 999;
+              }
           }
-          &:hover .hover-gray{
+          
+          &:hover .hover-gray-img{
             display: block;
             cursor: pointer;
           }
