@@ -13,26 +13,27 @@
         type="textarea"
         :rows="4"
         placeholder="请输入您的提示词。"
-        v-model="textarea">
+        v-model="detail.prompt">
        </el-input>
       </div>
       <div class="ai-rate">
         <div class="rate-content">
           <span class="rate-text">AI影响率</span>
-          <span class="rate-value">{{percentage}}%</span>        
+          <span class="rate-value">{{showPercentage}}%</span>        
         </div>
         <div>
+            <!-- <Progress v-on:rate="getRateValue" :RateValue = "percentage"></Progress> -->
             <Progress v-on:rate="getRateValue"></Progress>
         </div>
       </div>
       <div class="style-list">
           <div class="style-reference">风格参照</div>
-          <el-select v-model="value" placeholder="写实风格 (Real)" style="color: #ff0000;" :popper-append-to-body="false">
+          <el-select v-model="value1" placeholder="请选择" style="color: #ff0000;" :popper-append-to-body="false">
             <el-option
               v-for="item in options"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value">
+              :key="item.sid"
+              :label="item.name"
+              :value="item.sid">
             </el-option>
           </el-select>
       </div>
@@ -52,10 +53,22 @@
       <div class="history-record">
         <div class="history-text">历史记录</div>
         <div class="history-images">
-          <img src="../assets/HistoryImg.png" alt="">
-          <img src="../assets/HistoryImg.png" alt="">
-          <img src="../assets/HistoryImg.png" alt="">
-          <img src="../assets/HistoryImg.png" alt="">
+          <div class="img-hover" >
+            <img src="../assets/HistoryImg.png" alt="" class="history-img">
+            <div class="hover-gray">
+              <img src="../assets/Vector.png" alt="" class="vector-img">
+            </div>
+          </div>
+          <!-- <div class="img-hover">
+            <img src="../assets/HistoryImg.png" alt="" class="history-img">
+            
+          </div>
+          <div class="img-hover">
+            <img src="../assets/HistoryImg.png" alt="" class="history-img">
+          </div>
+          <div class="img-hover">
+            <img src="../assets/HistoryImg.png" alt="" class="history-img">
+          </div> -->
         </div>
       </div>
       <div class="generation-scheme">
@@ -68,6 +81,7 @@
 
 <script>
 import Progress from './Progress.vue';
+import {getStyleList,getProjectDetail,getHistoryList} from '@/api/index'
 export default {
   components:{
         // HelloWorld
@@ -77,33 +91,63 @@ export default {
     return {
       textarea: '',
       percentage:0,//AI影响率
-      options: [{
-          value: '选项1',
-          label: '黄金糕'
-        }, {
-          value: '选项2',
-          label: '双皮奶'
-        }, {
-          value: '选项3',
-          label: '蚵仔煎'
-        }, {
-          value: '选项4',
-          label: '龙须面'
-        }, {
-          value: '选项5',
-          label: '北京烤鸭'
-        }],
-        value: ''
+       options:[],//风格列表
+       value1: '',
+       type:this.$route.params.type,//项目类型
+       id:this.$route.params.id,//项目id
+       detail:{},//项目详情
+       history:[],//历史记录图片
     }
   },
   mounted() {
-    this.$bus.$emit('getInitialPercntage',this.percentage);
+    console.log("type(TwoDGeneration)=",this.type);
+    //获取风格列表
+    getStyleList().then(response => {
+        this.options = response.data.styles;
+        console.log('请求成功了!options',this.options);
+      },
+      error => {
+        console.log('请求失败了!',error);
+      }
+      );
+      //获取项目详情
+      getProjectDetail(this.$route.params.id).then(
+        response => {
+          this.detail = response.data;
+          this.percentage = this.detail.aiRate;
+          console.log("this.detail.aiRate=",this.detail.aiRate);
+          this.$bus.$emit('getInitialPercntage',this.percentage);
+          console.log("获取详情请求成功了！",this.detail);
+        },
+        error => {
+          console.log('获取详情请求失败了!',error);
+        }
+      );
+      //获取历史记录图片
+      getHistoryList(this.$route.params.id).then(
+        response => {
+          this.history = response.data;
+          console.log("获取历史记录图片请求成功了！",response);
+        },
+        error => {
+          console.log('获取详情请求失败了!',error);
+        }
+      )
   },
   methods: {
     getRateValue(percentage){
       this.percentage = percentage;
     }
   },
+  computed:{
+    showPercentage(){
+      if(this.percentage<1)
+        return this.percentage*100;
+      else
+        return this.percentage;
+    }
+    
+  }
 }
 </script>
 
@@ -236,12 +280,39 @@ export default {
         border-radius: 8px;
         background-color: #242425;
         padding: 8px 7px 19px 9px;
-        img{
-          width:152px;
-          height: 154px;
-          border-radius: 4px;
-          border: 0px;
+        .img-hover{
+          display: inline-block;
+          position: relative;
           margin: 4px;
+          .history-img{
+            width:152px;
+            height: 154px;
+            border-radius: 4px;
+            border: 0px;
+          }
+          .hover-gray{
+            display: none;
+            position: absolute;
+            width:100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            background-color: #969696;
+            z-index: 998;
+            opacity: 0.41;
+            .vector-img{
+              position: absolute;
+              left: 50%;
+              top: 50%;
+              transform: translate(-50%,-50%);
+              opacity: 100%;
+              z-index: 999;
+            }
+          }
+          &:hover .hover-gray{
+            display: block;
+            cursor: pointer;
+          }
         }
       }
     }

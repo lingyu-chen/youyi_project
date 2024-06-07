@@ -1,18 +1,22 @@
 <template>
-    <div class="custom-progress" ref="progress" @mouseup="upEvent">
+    <!--<div class="custom-progress" ref="progress" @mouseup="upEvent">
         <el-progress :percentage="percentage" :color="customColor" :show-text="false"></el-progress>
-        <!-- <div class="progress-round" ref="round" @mousedown="downEvent" @mousemove="moveEvent" @mouseup="upEvent"></div>
-         -->
+         <div class="progress-round" ref="round" @mousedown="downEvent" @mousemove="moveEvent" @mouseup="upEvent"></div>
+         
          <div class="progress-round" ref="round" @mousedown="downEvent"></div>
+    </div>-->
+    <div>
+        <div class="block">
+        <el-slider v-model="percentage"></el-slider>
+  </div>
     </div>
     
 </template>
 <script>
     export default {
-        props:['percentage1'],
         data() {
             return {
-                percentage:this.percentage1,
+                percentage:0.2,
                 customColor: '#2400ff',
                 roundObj:{
                     isfalse:false,//控制滑动
@@ -25,12 +29,14 @@
         },
         //渲染到页面的时候
         mounted() {
-            // console.log("this.$props->",this.$props);
-            setTimeout(()=>{
-                this.$refs.round.style.left = this.percentage+'%';
-                console.log("this.percentage=",this.percentage);
-                console.log("this.$props->",this.$props);
-            },5000)
+            
+            this.$bus.$on('getInitialPercntage',(percentage)=>{
+                this.percentage = percentage
+                console.log("props RateValue:",this.percentage)
+            })
+        },
+        beforeDestroy(){
+            this.$bus.$off('getInitialPercntage');
         },
         methods: {
             downEvent(event)
@@ -69,12 +75,32 @@
     }
 </script>
 <style lang="scss" scoped>
+.block{
+    /deep/.el-slider__runway{
+        height: 4px;
+        background-color: #242425;
+        .el-slider__bar{
+            height: 4px;
+            background-color: #2400ff;
+            cursor: pointer;
+        }
+        /deep/.el-slider__button-wrapper{
+            cursor: pointer;
+            .el-slider__button{
+                background-color: #2400ff;
+                border: 0px;
+                cursor: pointer;
+            }
+        }
+        
+    }
+}
     /deep/.el-progress-bar__outer{
         width: 298px;
         height: 4px !important;
         background-color: #242425 !important;
         .el-progress-bar__inner{
-            transition: width .1s ease;
+            transition: width .0s ease;
         }
     }
     .custom-progress{
