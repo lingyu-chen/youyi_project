@@ -1,9 +1,44 @@
 <template>
   <div class="twoDtothreeD-container">
     <div class="to-left">
-      <div class="panel-white">
-        <img src="../assets/image 4.png" alt="">
+      <canvas id="c" ref="tutorial" :width="width" :height="height" class="panel-white"></canvas>
+      <div class="tool-navigation-container">
+        <div class="tool-navigation">
+          <div class="undo-redo">
+            <img src="../assets/undo.png" alt="" style="marginRight: 16px;">
+            <img src="../assets/redo.png" alt="">
+          </div>
+          <div class="eraser-paint-graph">
+            <el-popover
+            placement="bottom"
+            width="24px"
+            trigger="click"
+            content="这是一段内容,这是一段内容,这是一段内容,这是一段内容。">
+            <el-button slot="reference" class="color-box"
+            :style="{ backgroundColor: colorPicker,padding: '0px' }">
+            <div style="width: 100%;height:100%;border: 2px solid gainsboro">
+            <i  style="font-size: 25px; font-weight: lighter;line-height: 34px; color: white" class="el-icon-arrow-down icon">
+            </i>
+            </div>
+            </el-button>
+            <sketch-picker v-model="colorPicker" @input="colorValueChange"/>
+        </el-popover>
+            <img src="../assets/paint.png" alt="" style="marginRight: 16px;" @click="startPaint">
+            <img src="../assets/eraser.png" alt="" style="marginRight: 16px;" @click="startEraser">
+            <img src="../assets/alpha.png" alt="">
+            <img src="../assets/selectAlpha.png" alt="">
+          </div>
+          <div class="upload-download">
+            <img src="../assets/toolupload.png" alt="" style="marginRight: 16px;">
+            <img src="../assets/tooldownload.png" alt="">
+          </div>
+          <div class="twoD-generation-container">
+            <div class="twoD-generation"><img src="../assets/generationicon.png" alt="">2D to 3D</div>
+          </div>
+          
+        </div>
       </div>
+       
     </div>
     <div class="to-right">
       <div class="prompt">
@@ -73,10 +108,13 @@
 <script>
 import Progress from './Progress.vue';
 import {getStyleList,getProjectDetail,getHistoryList} from '@/api/index'
+import { Sketch } from 'vue-color';
+import {fabric} from 'fabric-with-erasing'
 export default {
   components:{
         // HelloWorld
-        Progress
+        Progress,
+        "sketch-picker": Sketch
     },
   data() {
     return {
@@ -88,6 +126,18 @@ export default {
        id:this.$route.params.id,//项目id
        detail:{},//项目详情
        history:[],//历史记录图片
+       //画布
+        isDrawing: false,//用来判断是否落笔
+        mainDrawing:false,//用来控制是否点画笔
+        lastX: 0,
+        lastY: 0,
+        context: null,
+        width:1322,
+        height:734,
+        paintWidth:2,
+        colors:'red',
+        colorPicker:"#f00"
+
     }
   },
   mounted() {
@@ -128,7 +178,38 @@ export default {
   methods: {
     getRateValue(percentage){
       this.percentage = percentage;
-    }
+    },
+    startPaint(){
+      this.freeDraw();
+    },
+    freeDraw(){
+            if(this.canvas == null)
+            {
+                this.canvas = new fabric.Canvas("c");
+                this.canvas.backgroundColor = '#efefef';
+                this.canvas.isDrawingMode= 1;
+            }
+            
+            console.log("freeDraw");
+            this.canvas.freeDrawingBrush = new fabric.PencilBrush(this.canvas);
+            this.canvas.freeDrawingBrush.color = this.colors;
+            this.canvas.freeDrawingBrush.width = this.paintWidth;
+            this.canvas.renderAll();
+        },
+        // 颜色值改变事件处理
+        colorValueChange(val) {
+        // console.log(val)
+        // 取颜色对象的十六进制值
+        this.colorPicker = val.hex;
+        this.colors = val.hex;
+        },
+        //橡皮擦功能
+        startEraser(){
+            console.log("startEraser");
+            this.canvas.freeDrawingBrush = new fabric.EraserBrush(this.canvas);
+            this.canvas.freeDrawingBrush.width = 10;
+            this.canvas.isDrawingMode = true;
+        }
   },
   computed:{
     showPercentage(){
@@ -137,7 +218,6 @@ export default {
       else
         return this.percentage;
     }
-    
   }
 }
 </script>
@@ -159,11 +239,82 @@ export default {
       width: 1322px;
       height: 734px;
       background-color: #fff;
-      margin: 75px 115px 187px 115px;
+      margin: 75px 115px 0 115px;
       img{
         margin: 87px 509px 60px 438px;
       }
     }
+    /deep/.canvas-container{
+        width: 1322px;
+        height: 734px;
+        background-color: #fff;
+        margin: 75px 115px 0 115px;
+      }
+      /deep/.lower-canvas{
+        margin:0px;
+      }
+    .tool-navigation-container{
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      .tool-navigation{
+        position: relative;
+        width: 544px;
+        height: 64px;
+        background-color: #212123;
+        margin: 91px 504px 32px 504px;
+        border-radius: 32px;
+        .undo-redo{
+          display: inline-block;
+          padding: 8px 16px;
+          margin: 12px 0 12px 14px;
+          border-right: 1px solid #3d3d3d;
+        }
+        .eraser-paint-graph{
+          display: inline-block;
+          padding: 8px 16px;
+          margin: 12px 0 ;
+          border-right: 1px solid #3d3d3d;
+        }
+        .upload-download{
+          display: inline-block;
+          padding: 8px 16px;
+          margin: 12px 0 12px 0;
+          border-right: 1px solid #3d3d3d;
+        }
+        .twoD-generation-container{
+          display: flex;
+          align-items: center; /* 垂直居中 */
+          width: 165px;
+          position: absolute;
+          top: 0px;
+          right: 8px;
+        }
+        .twoD-generation{
+          display: inline-block;
+          padding: 0 24px 0 16px;
+          color: #fff;
+        // width: 111px;
+          height: 48px;
+          line-height: 48px;
+          font-size: 20px;
+          margin-top: 8px;
+          margin-bottom: 8px;
+          margin-left: 16px;
+          background-color: #2400ff;
+          border-radius: 24px;
+          font-family: AliMedium;
+          cursor: pointer;
+        // display: flex;
+        // align-items: center; /* 垂直居中 */
+        img{
+          margin-right: 4px;
+          vertical-align: middle 
+        }
+      }
+      }
+    }
+    
   }
   .to-right{
     display: inline-block;

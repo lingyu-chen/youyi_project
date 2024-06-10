@@ -6,12 +6,16 @@ import App from './App.vue';
 import VueRouter from 'vue-router';
 //引入路由器
 import router from './router'
+//引入fabric
+import { fabric } from 'fabric';
 
 Vue.config.productionTip = false
 
 Vue.use(ElementUI);
 //应用vue-router
 Vue.use(VueRouter);
+//应用fabric
+Vue.use(fabric);
 
 new Vue({
     render: h => h(App),

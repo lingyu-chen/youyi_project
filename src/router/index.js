@@ -5,6 +5,8 @@ import Login from '../components/Login'
 import Home from '../components/Home'
 import Index from '../components/Index'
 import Generation from '../components/TwoDGeneration'
+import CanvasTest from '../components/CanvasTest'
+import CanvasTestTwo from '../components/CanvasTestTwo'
 
 //创建并暴露一个路由器
 export default new VueRouter({
@@ -28,9 +30,18 @@ export default new VueRouter({
                 path: 'generation/:type',
                 name: 'Generation',
                 component: Generation
-            }]
+            }, ]
         },
-
+        {
+            path: '/canvasTest',
+            name: 'CanvasTest',
+            component: CanvasTest
+        },
+        {
+            path: '/canvasTestTwo',
+            name: 'CanvasTestTwo',
+            component: CanvasTestTwo
+        }
 
     ]
 })
