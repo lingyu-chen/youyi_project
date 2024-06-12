@@ -453,8 +453,8 @@ export default {
         img.set({
           left: 100,
           top: 100,
-          width: 300,
-          height: 300,
+          // width: 300,
+          // height: 300,
         });
         this.canvas.add(img);
         this.canvas.centerObject(img);
