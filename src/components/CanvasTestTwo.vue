@@ -480,7 +480,7 @@ export default {
                 this.canvas.isDrawingMode= 1;
             }
             
-            console.log("freeDraw");
+            console.log("freeDraw colors:",this.colors);
             this.canvas.freeDrawingBrush = new fabric.PencilBrush(this.canvas);
             this.canvas.freeDrawingBrush.color = this.colors;
             this.canvas.freeDrawingBrush.width = this.paintWidth;
@@ -492,6 +492,7 @@ export default {
         // 取颜色对象的十六进制值
         this.colorPicker = val.hex;
         this.colors = val.hex;
+        this.canvas.freeDrawingBrush.color = this.colors;
         },
         //橡皮擦功能
         startEraser(){

@@ -9,25 +9,6 @@
         :value="item.value">
       </el-option>
     </el-select>
-    <div>
-      <img src="../assets/undo.png" @click="back()" alt="" style="margin: 16px;background: #000;"/>
-      <img src="../assets/redo.png" @click="restore()" alt="" style="margin: 16px;background: #000;"/>
-    </div>
-    <el-upload
-      class="upload-demo"
-      action="#"
-      :before-upload="handleBeforeUpload"
-      :on-preview="handlePreview"
-      :on-remove="handleRemove"
-      :before-remove="beforeRemove"
-      multiple
-      :limit="2"
-      :on-exceed="handleExceed"
-      :file-list="fileList">
-      <el-button size="small" type="primary">点击上传</el-button>
-      <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
-    </el-upload>
-    <img src="../assets/tooldownload.png" alt="" style="margin: 16px;background: #000;height: 24px;" @click="save()">
   </div>
 </template>
  
@@ -57,8 +38,8 @@ export default {
         count:0,
         isDrawingCircle :false,//是否点击shift画圆
         shiftKey:false,//判断是否点击了shift
-        delList : [], // 被删除的数据
-        fileList: [{name: 'food.jpeg', url: 'https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100'}]
+        shape:fabric.Object | null,
+        startPoint:fabric.IPoint
     }
   },
   methods: {
@@ -89,8 +70,8 @@ export default {
       initDrawEvent(canvas) {
         // let shape = this.shape;
         // let startPoint = this.startPoint;
-      let shape=fabric.Object | null;
-      let startPoint=fabric.IPoint; // 记录初始坐标
+      // let shape=fabric.Object | null;
+      // let startPoint=fabric.IPoint; // 记录初始坐标
       canvas.on('mouse:down', (e) => {
         console.log("drawType e:",e.e.shiftKey);
         if (e.target || !drawType) {
@@ -98,14 +79,14 @@ export default {
           return;
         }
         console.log("点击次数：",this.count++);
-        if (!shape) {
+        if (!this.shape) {
           f.selection = false;
-          startPoint = e.absolutePointer
+          this.startPoint = e.absolutePointer
           switch (drawType) {
             case 'r':
-              shape = new fabric.Rect({ //创建对应图形类型
-                left: startPoint.x,
-                top: startPoint.y,
+              this.shape = new fabric.Rect({ //创建对应图形类型
+                left: this.startPoint.x,
+                top: this.startPoint.y,
                 width: 0,
                 height: 0,
                 fill: undefined,
@@ -115,17 +96,17 @@ export default {
             case 'c':
               {
                 if (this.isDrawingCircle) {
-                      shape = new fabric.Circle({
-                      left: startPoint.x,
-                      top: startPoint.y,
+                      this.shape = new fabric.Circle({
+                      left: this.startPoint.x,
+                      top: this.startPoint.y,
                       fill: '',
                       stroke: 'red'
                     });
                   }
                   else{
-                    shape = new fabric.Ellipse({
-                    left: startPoint.x,
-                    top: startPoint.y,
+                    this.shape = new fabric.Ellipse({
+                    left: this.startPoint.x,
+                    top: this.startPoint.y,
                     rx: 0,
                     ry: 0,
                     fill: undefined,
@@ -136,7 +117,7 @@ export default {
               
               break;
             case 'l':
-              shape = new fabric.Line([startPoint.x, startPoint.y, startPoint.x, startPoint.y], {
+              this.shape = new fabric.Line([this.startPoint.x, this.startPoint.y, this.startPoint.x, this.startPoint.y], {
                 fill: undefined,
                 stroke: 'red'
               });
@@ -144,26 +125,28 @@ export default {
             default:
               break;
           }
-          if (shape) {
-            f.add(shape); //添加图形
+          if (this.shape) {
+            // this.this.shape = this.shape;
+            // this.this.startPoint = this.startPoint;
+            f.add(this.shape); //添加图形
             f.requestRenderAll(); //刷新画布
           }
         }
         window.selected = e?.target // 当点击选择到有可选图形时，会获得图形的数据。
       }).on('mouse:move', (e) => {
         console.log("move this.isDrawingCircle:",this.isDrawingCircle)
-        if (drawType && shape) {
+        if (drawType && this.shape) {
           const p = f.getPointer(e.e) || {
             x: 0,
             y: 0,
           };
-          const minX = Math.min(p.x, startPoint.x);
-          const minY = Math.min(p.y, startPoint.y);
-          let w = Math.abs(p.x - startPoint.x);
-          let h = Math.abs(p.y - startPoint.y);
+          const minX = Math.min(p.x, this.startPoint.x);
+          const minY = Math.min(p.y, this.startPoint.y);
+          let w = Math.abs(p.x - this.startPoint.x);
+          let h = Math.abs(p.y - this.startPoint.y);
           switch (drawType) {
             case 'r':
-              shape.set({
+              this.shape.set({
                 left: minX,
                 top: minY,
                 width: w,
@@ -174,14 +157,14 @@ export default {
               {
                 if (this.isDrawingCircle) {
                     var radius = w/2;
-                    shape.set({
+                    this.shape.set({
                     left: minX,
                     top: minY,
                     radius: radius,
                   });
                   }
                 else{
-                    shape.set({
+                    this.shape.set({
                     left: minX,
                     top: minY,
                     rx: w / 2,
@@ -191,13 +174,13 @@ export default {
               }
               break;
             case 'l':
-              let x1 = startPoint.x;
-              let y1 = startPoint.y;
+              let x1 = this.startPoint.x;
+              let y1 = this.startPoint.y;
               let x2 = p.x;
               let y2 = p.y;
-              console.log(startPoint, p);
+              console.log(this.startPoint, p);
     
-              shape.set({
+              this.shape.set({
                 x1,
                 y1,
                 x2,
@@ -207,82 +190,18 @@ export default {
             default:
               break;
           }
-          this.shape = shape;
-          this.startPoint = startPoint;
           f.requestRenderAll();
         }
       }).on('mouse:up', (e) => {
-        if (drawType && shape) {
-          shape.setCoords(); // 更新图像坐标；
+        if (drawType && this.shape) {
+          this.shape.setCoords(); // 更新图像坐标；
           // drawType = null
           f.selection = true;
-          shape = null;
+          this.shape = null;
           f.requestRenderAll();  
         }
       })
-    },
-    // 撤销
-    back() {
-      if (this.canvas._objects.length > 0) {
-        console.log("执行撤销操作")
-        this.delList.push(this.canvas._objects.pop());
-        this.canvas.renderAll();
-      }
-    },
-    // 恢复
-    restore() {
-      console.log("执行恢复操作")
-      if (this.delList.length > 0) {
-        this.isRedoing = true;
-        this.canvas.add(this.delList.pop());
-        this.canvas.renderAll();
-      }
-    },
-    //上传图片
-    handleBeforeUpload(file) {
-      const reader = new FileReader();
-      reader.readAsDataURL(file); // 读取文件为Base64
-      reader.onload = e => {
-        console.log('图片的Base64编码：', e.target.result);
-        // 这里可以执行其他逻辑，比如将Base64存储起来或者上传到服务器
-        const imageUrl = e.target.result;
-        fabric.Image.fromURL(imageUrl, (img) => {
-        img.set({
-          left: 100,
-          top: 100,
-          width: 300,
-          height: 300,
-        });
-        this.canvas.add(img);
-        this.canvas.centerObject(img);
-        });
-      };
-      return false; // 阻止默认上传行为
-    },
-    handleRemove(file, fileList) {
-        console.log("file:",file, "fileList",fileList);
-      },
-      handlePreview(file) {
-        console.log(file);
-      },
-      handleExceed(files, fileList) {
-        this.$message.warning(`当前限制选择 3 个文件，本次选择了 ${files.length} 个文件，共选择了 ${files.length + fileList.length} 个文件`);
-      },
-      beforeRemove(file, fileList) {
-        return this.$confirm(`确定移除 ${ file.name }？`);
-      },
-      //保存画布
-      save(){
-        console.log("调用了下载画布方法")
-        const dataUrl = this.canvas.toDataURL('png');
-        this.downloadIamge(dataUrl,'newimg');
-      },
-      downloadIamge(imgsrc, name){
-        var a = document.createElement("a");
-        a.href = imgsrc;
-        a.download = name;
-        a.click();
-      }
+    }
   },
   mounted() {
     this.canvas = f = new fabric.Canvas("c", {
@@ -303,6 +222,25 @@ export default {
     {
       console.log("this.shiftKey:newVal",newVal)
       this.isDrawingCircle = newVal;
+      if(this.isDrawingCircle)
+      {
+        this.shape = new fabric.Circle({
+            left: this.startPoint.x,
+            top: this.startPoint.y,
+            fill: '',
+            stroke: 'red'
+          });
+      }
+      else{
+        this.shape = new fabric.Ellipse({
+            left:this.startPoint.x,
+            top: this.startPoint.y,
+            rx: 0,
+            ry: 0,
+            fill: undefined,
+            stroke: 'red'
+            });
+      }
     }
   }
 }
