@@ -20,17 +20,24 @@ export default new VueRouter({
             name: 'Home',
             component: Home,
             children: [{
-                path: '', // 这里设置默认路径，将展示第一个子路由
-                component: Index
-            }, {
-                path: 'index',
-                name: 'Index',
-                component: Index,
-            }, {
-                path: 'generation/:type',
-                name: 'Generation',
-                component: Generation
-            }, ]
+                    path: '', // 这里设置默认路径，将展示第一个子路由
+                    component: Index
+                }, {
+                    path: 'index',
+                    name: 'Index',
+                    component: Index,
+                },
+                {
+                    path: 'generation',
+                    name: 'Generation',
+                    component: Generation
+                },
+                // {
+                //     path: 'generation/:type',
+                //     name: 'Generation',
+                //     component: Generation
+                // },
+            ]
         },
         {
             path: '/canvasTest',

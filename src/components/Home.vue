@@ -2,7 +2,16 @@
   <div>
     <el-container>
       <el-header height="84px">
-        <img src="../assets/优艺LOGO+白色标准字 1.png" alt="" class="logo">
+        <div class="header-left">
+          <img src="../assets/优艺LOGO+白色标准字 1.png" alt="" class="logo">
+          <div class="project-name-btn" v-if="showbtn">
+            <img src="../assets/gobackbtn.png" alt="" class="go-back-btn" @click="goback()">
+            <span style="color: #3d3d3d; margin: 0 8px;">/</span>
+            <span class="project-name">{{projectName}}</span>
+          </div>
+        </div>
+        
+        
         <div class="username">
           <img :src=userInfo.iconLink alt="">
           <div class="username-container">
@@ -40,7 +49,9 @@ export default {
       };
     },
     methods: {
-
+      goback(){
+        this.$router.go(-1);
+      }
     },
     mounted() {
       // console.log("Home页面")
@@ -53,6 +64,16 @@ export default {
       }
       );
     },
+    computed:{
+      projectName(){
+        // console.log("Home this.$route.params.name:",this.$route.params.name)
+        return this.$route.query.name;
+      },
+      showbtn(){
+        console.log("Home this.$route.path.includes('/home/generation'):",this.$route.path.includes('/home/generation'))
+        return this.$route.path.includes('/home/generation') 
+      }
+    }
 }
 </script>
 
@@ -81,6 +102,23 @@ export default {
   color: #333;
   line-height: 84px;
   border-bottom: 1px solid #3D3D3D;
+  .project-name-btn{
+    display: inline-block;
+    padding: 13px 0 13px 19px;
+    border-left: 1px solid #3d3d3d;
+    height: 14.5px;
+    line-height: 14.5px;
+    margin-left: 23px;
+    margin-top: 9px;
+    // .go-back-btn{
+    //   margin-right: 8px;
+    // }
+    .project-name{
+      color: #fff;
+      font-family: AliMedium;
+      font-size: 20px;
+    }
+  }
   .username{
     width: 173px;
     height: 32px;
@@ -150,10 +188,12 @@ body > .el-container {
   line-height: 320px;
 }
 
-.logo {
+.header-left {
   position: absolute;
   left: 30px;
   top: 11px;
+  display: flex;
+  align-items: center;
 }
 
 

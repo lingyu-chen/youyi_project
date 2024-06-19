@@ -4,7 +4,7 @@ import { Session } from './storage';
 
 // 配置新建一个 axios 实例
 const service = axios.create({
-    baseURL: 'http://110.40.187.2:8081',
+    baseURL: 'http://116.62.112.11:8081',
     timeout: 50000,
     headers: { 'Content-Type': 'application/json' },
 });
@@ -35,20 +35,18 @@ service.interceptors.response.use(
             // router.push('/login');
             window.location.href = '#/login'; // 去登录页
             MessageBox.alert('你已被登出，请重新登录', '提示', {})
-                // if (res.code === 401 || res.code === 4001) {
-                //     Session.clear(); // 清除浏览器全部临时缓存
-                //     window.location.href = '/login'; // 去登录页
-                //     MessageBox.alert('你已被登出，请重新登录', '提示', {})
-                //         .then(() => {})
-                //         .catch(() => {});
-                // } else if ((res.code === 403)) {
-                //     Message.error(res.msg)
-                // } else if (res.code === 400) {
-                //     Message.error(res.msg)
-                // }
+
             return Promise.reject(service.interceptors.response);
         } else {
-            return response.data;
+            if (res.code == 0)
+                return response.data;
+            else if (res.code == null) {
+                return response;
+            } else {
+                MessageBox.alert("123", res.msg);
+                return Promise.reject(service.interceptors.response);
+            }
+
         }
     },
     (error) => {

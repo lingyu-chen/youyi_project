@@ -1,4 +1,5 @@
 <template>
+  <div>
   <div class="cdie" id="cdie">
     <canvas id="c" ref="canvas"></canvas>
     <el-select v-model="value" placeholder="请选择">
@@ -9,6 +10,22 @@
         :value="item.value">
       </el-option>
     </el-select>
+    <el-tooltip class="item" effect="dark" content="Top Center 提示文字" placement="top">
+      <el-button>上边</el-button>123
+    </el-tooltip>
+    <div class="alpha-selected" style="background: #5034ff;height: 48px;">
+      
+        <img src="../assets/alpha.png" alt="">
+            <el-select  :popper-append-to-body="false" :teleported="false" v-model="alphaValue" placeholder="" style="opacity: 1;width: 24px;height: 24px;">
+                <el-option
+                  v-for="item in alphaOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value">
+                </el-option>
+            </el-select>
+          <img src="../assets/selectAlpha.png" alt="" class="select-alpha-icon">
+    </div>
     <div>
       <img src="../assets/undo.png" @click="back()" alt="" style="margin: 16px;background: #000;"/>
       <img src="../assets/redo.png" @click="restore()" alt="" style="margin: 16px;background: #000;"/>
@@ -28,11 +45,32 @@
       <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
     </el-upload>
     <img src="../assets/tooldownload.png" alt="" style="margin: 16px;background: #000;height: 24px;" @click="save()">
+    <!-- <span class="icon-icon-paint"></span> -->
+    <img src="../assets/eraser.png" alt="" style="marginRight: 16px;background: #000;height: 24px;" @click="startEraser()">
+
+    <el-tooltip placement="top" style="height:61px">
+      <div slot="content">多行信息<br/>第二行信息</div>
+      <el-button>Top center</el-button>
+    </el-tooltip>
+    <img src="../assets/alpha.png" alt="" style="marginRight: 16px;background: #000;height: 24px;" @click="startEraser()">
+
+    <div class="image-container">
+      <img src="../assets/colorpicker.png" alt="示例图片">
+    </div>
+    
   </div>
+  <div style="display: block;marginTop:-32px;marginLeft: 210px;">
+    <div class="test-container">
+      <div class="color-picker"><span></span></div>
+    </div>
+      
+    </div>
+</div>
 </template>
  
 <script>
-import { fabric } from "fabric";
+// import { fabric } from "fabric";
+import {fabric} from 'fabric-with-erasing'
 
 import hotkeys from 'hotkeys-js';
 window.fabric = fabric
@@ -43,6 +81,7 @@ export default {
   data() {
     return {
       canvas:this.$refs.canvas,
+      isFalse:false,
       options: [{
           value: 'r',
           label: '矩形'
@@ -54,12 +93,26 @@ export default {
           label: '直线'
         }],
         value: 'r',
+        alphaOptions:[{
+            value: 'r1',
+            label: 'Rectangle'
+          }, {
+            value: 'c1',
+            label: 'Ellipse'
+          }, {
+            value: 'l1',
+            label: 'line'
+          }],
+          alphaValue:'r',
         count:0,
         isDrawingCircle :false,//是否点击shift画圆
         shiftKey:false,//判断是否点击了shift
         delList : [], // 被删除的数据
-        fileList: [{name: 'food.jpeg', url: 'https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100'}]
-    }
+        fileList: [{name: 'food.jpeg', url: 'https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100'}],
+        addStack:[],//画布添加操作
+        undoStack:[],//画布 橡皮擦除操作
+        redoStack:[],//画布 橡皮擦除撤销之后恢复操作
+      }
   },
   methods: {
     initHotkey() {
@@ -221,21 +274,74 @@ export default {
         }
       })
     },
+    //添加画布对象事件
+    initDrawAddEvent(canvas){
+      canvas.on("object:added",(options)=>{
+        this.addStack.push("other");
+        console.log("object:added:",options);
+      });
+    },
+    //撤销
+    // back(){
+    //   this.canvas = new fabric.Canvas("c");
+    //   this.canvas.undo();
+    // },
+    // restore() {
+    //   this.canvas.redo();
+    // },
     // 撤销
     back() {
-      if (this.canvas._objects.length > 0) {
-        console.log("执行撤销操作")
-        this.delList.push(this.canvas._objects.pop());
+      const backPop = this.addStack.pop();
+      console.log("执行撤销操作 backPop:",backPop)
+      if(backPop=="eraser")//当撤销的是橡皮擦除操作时
+      {
+        console.log("执行撤销操作this.undoStack.length:",this.undoStack.length)
+        if (this.undoStack.length === 0) return;
+        const obj = this.undoStack.pop();
+        this.delList.push("eraser");//记录橡皮擦除撤销之后恢复 索引位置
+        this.redoStack.push(obj);
+        // console.log("this.canvas.remove(obj)",this.canvas.remove(obj));
+        canvas.freeDrawingBrush = new fabric.EraserBrush(canvas);
+        canvas.freeDrawingBrush.width = 10;
+        canvas.freeDrawingBrush.inverted = true;
+        canvas.isDrawingMode = true;
+        // this.canvas.remove(obj);
+        // // this.canvas.add(obj);
+        // // this.canvas.setActiveObject(obj);
+        //   this.canvas.freeDrawingBrush.inverted = true // 恢复被擦拭的地方
         this.canvas.renderAll();
       }
+      else{
+        if (this.canvas._objects.length > 0) {
+          console.log("执行撤销操作")
+          this.delList.push(this.canvas._objects.pop());
+          this.canvas.renderAll();
+        }
+      }
+      
     },
     // 恢复
     restore() {
       console.log("执行恢复操作")
       if (this.delList.length > 0) {
-        this.isRedoing = true;
-        this.canvas.add(this.delList.pop());
-        this.canvas.renderAll();
+        const popRedo = this.delList.pop();
+        if(popRedo == "eraser")
+        {
+          if (this.redoStack.length === 0) return;
+          const obj = this.redoStack.pop();
+          this.undoStack.push(this.canvas.getActiveObject());
+          this.canvas.remove(this.canvas.getActiveObject());
+          this.canvas.add(obj);
+          this.canvas.setActiveObject(obj);
+          this.canvas.renderAll();
+        }
+        else
+        {
+          this.isRedoing = true;
+          this.canvas.add(popRedo);
+          this.canvas.renderAll();
+        }
+        
       }
     },
     //上传图片
@@ -254,6 +360,7 @@ export default {
           height: 300,
         });
         this.canvas.add(img);
+        img.hasControls = false; //只能移动不能（编辑）操作
         this.canvas.centerObject(img);
         });
       };
@@ -271,6 +378,22 @@ export default {
       beforeRemove(file, fileList) {
         return this.$confirm(`确定移除 ${ file.name }？`);
       },
+      //橡皮擦功能
+    startEraser(){
+      this.canvas.on("path:created",(options)=>{
+        this.addStack.push("eraser");//记录画布 添加元素动作及索引位置
+        this.undoStack.push(options);
+        console.log("橡皮擦擦除this.undoStack:",this.undoStack);
+        // console.log("this.canvas._objects:",this.canvas._objects,"options:",options);
+      });
+      this.value = '';//关闭形状绘画
+      console.log("startEraser this.drawType:",this.drawType);
+      this.canvas.freeDrawingBrush = new fabric.EraserBrush(this.canvas);
+      this.canvas.freeDrawingBrush.width = 10;
+      this.canvas.isDrawingMode = true;
+      
+      // this.$refs.iconPaint.style.color = '#fff';
+    },
       //保存画布
       save(){
         console.log("调用了下载画布方法")
@@ -287,12 +410,15 @@ export default {
   mounted() {
     this.canvas = f = new fabric.Canvas("c", {
     backgroundColor: "grey",
-    width: 1000,
-    height: 500,
+    width: 600,
+    height: 600,
   });
   drawType = 'r',
   this.initHotkey() // 声明图形绘画的启用快捷键
   this.initDrawEvent(f) // 创建图形绘画相关事件；
+  this.initDrawAddEvent(f)
+  const imageUrl=''
+  this.canvas.setBackgroundImage(imageUrl, this.canvas.renderAll.bind(this.canvas), options)
   },
   watch:{
     value(newVal,oldVal)
@@ -311,12 +437,176 @@ export default {
 </script>
  
 <style scoped lang="scss">
+// @import '../assets/style.css';
+/deep/.el-select{
+    right: 8px;
+    bottom: 24px;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    margin: auto;
+    .el-input{
+      opacity:0;
+      width: 24px;
+      height: 24px;
+    .el-input__inner{
+      display: none;
+      width: 24px;
+      height: 24px;
+      padding: 0 !important;
+      background-color: rgba(255, 255, 255, 0.2) !important;
+      }
+      .el-input__suffix{
+        display: none;
+      }
+    }
+}
+/deep/.el-select-dropdown{
+  background: #59595a !important;
+  .el-scrollbar{
+    background: #59595a !important;
+    border-radius: 4px;
+    .el-select-dropdown__item{
+      color:#959595;//color:#959595;
+      font-size: 16px;
+      font-family: AliRegular;
+    }
+    .el-select-dropdown__item.selected{
+      color:#fff;
+      font-weight: normal;
+    }
+    .el-select-dropdown__item.hover{
+      background-color: #59595a;
+    }
+  }
+  .popper__arrow{
+    border-bottom: #fff;
+    left: 43%;
+  }
+  .popper__arrow::after{
+    border-bottom-color: #59595a;
+  }
+}
+          .alpha-selected{
+            position: relative;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 64px;
+            height: 48px;
+            line-height: 48px;
+            margin: 60px;
+            border-radius: 4px;
+            .select-alpha-icon{
+              // position: absolute;
+            }
+          }
+      .color-picker {
+            margin: 0;
+            padding: 0;
+            width: 18px;
+            height: 18px;
+            background-color: #fff;
+            // margin: 0 auto;
+            border: 2px solid #6C6C6C;
+            /* box-shadow: inset 0px 0px 67px 37px #cccccc; */
+            /* 实现蒙蔽效果 */
+            position: relative;
+            border-radius: 2px;
+            z-index: 998;
+            span:nth-child(1) {
+            margin: 0;
+            padding: 0;
+            display: block;
+            width: 8px;
+            height: 8px;
+            border-right: 2px solid #6C6C6C;
+            border-bottom: 2px solid #6C6C6C;
+            z-index: 999;
+            position: absolute;
+            right: -2px;
+            bottom: -2px;
+            box-sizing: content-box;
+        }
+        
+        span:nth-child(1)::after {
+            content: '';
+            margin: 0;
+            padding: 0;
+            display: block;
+            width: 8px;
+            height: 8px;
+            position: absolute;
+            background-color: #fff;
+            z-index: 999;
+            border: 2px solid transparent;
+            top: 4px;
+            left: 4px;
+            transform: rotate(45deg); 
+            border-left: 2px solid #6C6C6C;
+            // box-shadow:inset 0px 0px 67px 37px #6C6C6C
+        }
+      }
 .cdie {
   width: 100%;
   text-align: center;
   display: flex;
   justify-content: center;
 }
+.icon-paint{
+  width: 24px;
+  height: 24px;
+  color: blue;
+  background-color: #f00;
+}
+/deep/.icon-icon-paint{
+  width: 24px;
+  height: 24px;
+  color: #d34da2;
+}
+.image-container {
+  position: relative;
+  display: inline-block;
+  width: 24px; /* 或者你需要的宽度 */
+  height: 24px; /* 或者你需要的高度 */
+  overflow: hidden;
+  // img{
+  //   background-color: rgb(255, 0, 0); /* 半透明的红色背景 */
+  //   // background-image: url('../assets/colorpicker.png');
+  //   background-size: 50%; /* 根据需要调整背景图片大小 */
+  //   background-repeat: no-repeat;
+  //   background-position: center;
+  // }
+//   img::before{
+//       content: '';
+//       display: block;
+//       position: absolute;
+//       top: 0;
+//       left: 0;
+//       width: 22px;
+//       height: 22px;
+//       background-color: rgba(255, 0, 0, 0.5); /* 半透明的红色背景 */
+//       // background-image: url('../assets/colorpicker.png');
+//       background-size: 50%; /* 根据需要调整背景图片大小 */
+//       background-repeat: no-repeat;
+//       background-position: center;
+//   }
+}
+ 
+// .image-container::before {
+//   content: '';
+//   display: block;
+//   position: absolute;
+//   top: 0;
+//   left: 0;
+//   width: 100%;
+//   height: 100%;
+//   background-color: rgba(255, 0, 0, 0.5); /* 半透明的红色背景 */
+//   background-image: url('../assets/colorpicker.png');
+//   background-size: 50%; /* 根据需要调整背景图片大小 */
+//   background-repeat: no-repeat;
+//   background-position: center;
+// }
 </style>
 <!-- <template>
   <div class="home">

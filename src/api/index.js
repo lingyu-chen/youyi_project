@@ -97,3 +97,95 @@ export function getHistoryList(id) {
         method: 'get',
     })
 }
+
+/**
+ * 保存项目
+ * @param params 要传的参数值
+ * @returns 返回接口数据
+ */
+export function projectSave(params) {
+    return request({
+        url: '/aigid/v1/project/save',
+        method: 'post',
+        data: params,
+    });
+}
+
+/**
+ * 发起生成任务（确认生成）
+ * @param params 要传的参数值
+ * @returns 返回接口数据
+ */
+export function taskGenerate(params) {
+    return request({
+        url: '/aigid/v1/task/generate',
+        method: 'post',
+        data: params,
+    });
+}
+
+/**
+ * 上传文件
+ * @param params 要传的参数值
+ * @returns 返回接口数据
+ */
+export function uploadFile(url, params) {
+    return request({
+        url: url,
+        method: 'put',
+        data: params,
+        headers: {
+            'Content-Type': 'image/png'
+        }
+    });
+}
+
+/**
+ * 文件上传完成通告（确认生成）
+ * @param params 要传的参数值
+ * @returns 返回接口数据
+ */
+export function fileFinish(params) {
+    return request({
+        url: '/aigid/v1/project/file/finish',
+        method: 'post',
+        data: params,
+    });
+}
+
+/**
+ * 文件上传完成通告（确认生成）
+ * @param tid 要传的参数值
+ * @returns 返回接口数据
+ */
+export function cancelTask(tid) {
+    return request({
+        url: '/aigid/v1/task/cancel?tid=' + tid,
+        method: 'delete',
+    });
+}
+
+/**
+ * 查询任务状态详情
+ * @param tid 要传的参数值
+ * @returns 返回接口数据
+ */
+export function findTaskStatus(tid) {
+    return request({
+        url: '/aigid/v1/task/status?tid=' + tid,
+        method: 'get',
+    });
+}
+
+/**
+ * 使用上次生成结果覆盖当前画布请求
+ * @param projectId 要传的参数值
+ * @returns 返回接口数据
+ */
+export function fileOverwrite(param) {
+    return request({
+        url: '/aigid/v1/project/file/overwrite',
+        method: 'post',
+        params: param,
+    });
+}
