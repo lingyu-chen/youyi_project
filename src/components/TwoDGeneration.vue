@@ -307,6 +307,7 @@ export default {
           }
           if(response.data.status == 'RUNNING')  
           {
+              this.isDuringGeneration  = true;
               const task = this.findTargetRunningTask(response.data.tasks)
               this.timerId = setInterval(() => {//设置一个查询任务状态详情的定时器
               this.findStatus(task.tid);
@@ -656,7 +657,7 @@ export default {
                   uploadFile(url,blobObj).then(
                     response => {
                       console.log("上传文件 请求成功了",response);
-                      this.getFileFinish();//调用文件上传通知接口
+                      this.getFileFinish(projectId,fileId);//调用文件上传通知接口
                     },
                     error => {
                       console.log("上传文件 请求失败了",error);
@@ -669,24 +670,25 @@ export default {
         }
         )
       },
-      async getFileFinish(){
+      getFileFinish(projectId,fileId){
         fileFinish({projectId:projectId,fileId:fileId,finish:true}).then(
-                        response => {
-                          console.log("文件上传完成通告 请求成功了",response);
-                          if(response.data.status == true)
-                          {
-                            const tid = await this.getTaskGenerate(projectId);//调用发起生成任务接口
-                            this.setTimer(tid)
-                            console.log("文件保存成功");
-                          }
-                            
-                          else
-                            console.log("文件保存失败");
-                        },
-                        error => {
-                          console.log("文件上传完成通告 请求失败了",error);
-                        }
-                      )
+          async (response) => {
+                console.log("文件上传完成通告 请求成功了",response);
+                if(response.data.status == true)
+                {
+                  const tid = await this.getTaskGenerate(projectId);//调用发起生成任务接口
+                  console.log("async tid")
+                  this.setTimer(tid)
+                  console.log("文件保存成功");
+                }
+                  
+                else
+                  console.log("文件保存失败");
+              },
+              error => {
+                console.log("文件上传完成通告 请求失败了",error);
+              }
+            )
       },
       getTaskGenerate(projectId){
         let tid;
@@ -816,8 +818,6 @@ export default {
         // this.convertURLToBase64(this.detail.canvas.link);//返回原来的画布
       },
       getDuringGeneration(){
-      // console.log("getDuringGeneration:",this.detail.status == 'RUNNING')
-      // return true;
       let isStatus;
       if(this.detail.status == 'RUNNING'){
           const tasks = this.detail.tasks;
