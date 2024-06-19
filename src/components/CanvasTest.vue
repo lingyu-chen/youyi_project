@@ -103,7 +103,7 @@
         src="../assets/alpha.png"
         alt=""
         style="marginright: 16px; background: #000; height: 24px"
-        @click="startEraser()"
+        @click="changeType()"
       />
 
       <div class="image-container">
@@ -190,6 +190,9 @@ export default {
     };
   },
   methods: {
+    changeType() {
+      drawType = "";
+    },
     initHotkey() {
       hotkeys("r", () => {
         // 矩形
@@ -490,11 +493,52 @@ export default {
   },
   mounted() {
     this.canvas = f = new fabric.Canvas("c", {
-      backgroundColor: "grey",
+      backgroundColor: "#ff0",
       width: 600,
       height: 600,
+      selectionFullyContained: true,
+      borderColor: "#ff0",
     });
-    (drawType = "r"), this.initHotkey(); // 声明图形绘画的启用快捷键
+    fabric.Object.prototype.transparentCorners = false;
+    fabric.Object.prototype.cornerColor = "#2080f0";
+    fabric.Object.prototype.cornerStyle = "circle";
+    fabric.Object.prototype.cornerSize = 8;
+    fabric.Object.prototype.borderColor = "#2080f0";
+
+    var deleteIcon =
+      "data:image/svg+xml,%3C%3Fxml version='1.0' encoding='utf-8'%3F%3E%3C!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.1//EN' 'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'%3E%3Csvg version='1.1' id='Ebene_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' width='595.275px' height='595.275px' viewBox='200 215 230 470' xml:space='preserve'%3E%3Ccircle style='fill:%23F44336;' cx='299.76' cy='439.067' r='218.516'/%3E%3Cg%3E%3Crect x='267.162' y='307.978' transform='matrix(0.7071 -0.7071 0.7071 0.7071 -222.6202 340.6915)' style='fill:white;' width='65.545' height='262.18'/%3E%3Crect x='266.988' y='308.153' transform='matrix(0.7071 0.7071 -0.7071 0.7071 398.3889 -83.3116)' style='fill:white;' width='65.544' height='262.179'/%3E%3C/g%3E%3C/svg%3E";
+
+    var img = document.createElement("img");
+    img.src = deleteIcon;
+
+    fabric.Object.prototype.controls.deleteControl = new fabric.Control({
+      x: 0.5,
+      y: -0.5,
+      offsetY: 16,
+      cursorStyle: "pointer",
+      mouseUpHandler: deleteObject,
+      render: renderIcon,
+      cornerSize: 24,
+    });
+    function deleteObject(eventData, transform) {
+      var target = transform.target;
+      var canvas = target.canvas;
+      canvas.remove(target);
+      canvas.requestRenderAll();
+    }
+
+    function renderIcon(ctx, left, top, styleOverride, fabricObject) {
+      var size = this.cornerSize;
+      ctx.save();
+      ctx.translate(left, top);
+      ctx.rotate(fabric.util.degreesToRadians(fabricObject.angle));
+      // ctx.drawImage(img, -size / 4, -size / 2, size / 2, size / 2);
+      ctx.drawImage(img, -size / 4, -size / 2, size / 2, size / 2);
+      ctx.restore();
+    }
+
+    drawType = "r";
+    this.initHotkey(); // 声明图形绘画的启用快捷键
     this.initDrawEvent(f); // 创建图形绘画相关事件；
     this.initDrawAddEvent(f);
     const imageUrl = "";
@@ -502,6 +546,22 @@ export default {
       imageUrl,
       this.canvas.renderAll.bind(this.canvas)
     );
+    // this.canvas.selectionFullyContained = true;
+    // // 拦截对象选中事件
+    // this.canvas.on("before:selection:cleared", (options) => {
+    //   let activeObject = options.target;
+    //   if (!activeObject.selectable) {
+    //     options.preventDefault = true;
+    //   }
+    // });
+
+    // this.canvas.on("selection:created", () => {
+    //   const activeObject = this.canvas.getActiveObject();
+    //   if (activeObject && !activeObject.selectable) {
+    //     this.canvas.discardActiveObject();
+    //     this.canvas.requestRenderAll();
+    //   }
+    // });
   },
   watch: {
     value(newVal, oldVal) {
@@ -510,6 +570,9 @@ export default {
     shiftKey(newVal, oldVal) {
       console.log("this.shiftKey:newVal", newVal);
       this.isDrawingCircle = newVal;
+    },
+    alphaValue(newVal, oldVal) {
+      drawType = newVal;
     },
   },
 };
