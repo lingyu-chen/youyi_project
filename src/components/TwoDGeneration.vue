@@ -305,7 +305,13 @@ export default {
             resultImg.style.backgroundSize = 'cover';
             resultImg.style.backgroundPosition = 'cover';
           }
-            
+          if(response.data.status == 'RUNNING')  
+          {
+              const task = this.findTargetRunningTask(response.data.tasks)
+              this.timerId = setInterval(() => {//设置一个查询任务状态详情的定时器
+              this.findStatus(task.tid);
+            }, 3000); // 每隔3秒执行一次
+          }
           // this.drawImageOnCanvas(this.imageSrc);//将图片加载到画布上
           // console.log("this.detail.aiRate=",this.detail.aiRate);
           this.$bus.$emit('getInitialPercntage',this.percentage);
@@ -650,22 +656,7 @@ export default {
                   uploadFile(url,blobObj).then(
                     response => {
                       console.log("上传文件 请求成功了",response);
-                      fileFinish({projectId:projectId,fileId:fileId,finish:true}).then(
-                        response => {
-                          console.log("文件上传完成通告 请求成功了",response);
-                          if(response.data.status == true)
-                          {
-                            this.getTaskGenerate(projectId);//调用发起生成任务接口
-                            console.log("文件保存成功");
-                          }
-                            
-                          else
-                            console.log("文件保存失败");
-                        },
-                        error => {
-                          console.log("文件上传完成通告 请求失败了",error);
-                        }
-                      )
+                      this.getFileFinish();//调用文件上传通知接口
                     },
                     error => {
                       console.log("上传文件 请求失败了",error);
@@ -678,49 +669,54 @@ export default {
         }
         )
       },
+      async getFileFinish(){
+        fileFinish({projectId:projectId,fileId:fileId,finish:true}).then(
+                        response => {
+                          console.log("文件上传完成通告 请求成功了",response);
+                          if(response.data.status == true)
+                          {
+                            const tid = await this.getTaskGenerate(projectId);//调用发起生成任务接口
+                            this.setTimer(tid)
+                            console.log("文件保存成功");
+                          }
+                            
+                          else
+                            console.log("文件保存失败");
+                        },
+                        error => {
+                          console.log("文件上传完成通告 请求失败了",error);
+                        }
+                      )
+      },
       getTaskGenerate(projectId){
+        let tid;
         taskGenerate({projectId:projectId}).then(
           response => {
-            // this.isDuringGeneration = false;
-            // // this.findStatus();//任务完成时再次调用 拿到最新的任务状态详情(result)
-            // this.isConfirm = true;//任务生成成功完成时 要显示确认和取消栏
-            //将新生成的图片渲染到画布上
-            const tid = response.data.tid;
-            this.timerId = setInterval(() => {//设置一个查询任务状态详情的定时器
-            this.findStatus(tid);
-          }, 3000); // 每隔3秒执行一次
-            const finishTask = this.findTargetFinishedTask(this.tasks);//获得状态为FINISHED的目标task
-            console.log("taskGenerate finishTask:",finishTask)
-            if(finishTask != null)
-            {
-              if (this.timerId) {//清除查询任务状态详情定时器
-                clearInterval(this.timerId);
-                // console.log("taskGenerate :",finishTask.result.link)
-                this.isDuringGeneration = false;
-                // this.findStatus();//任务完成时再次调用 拿到最新的任务状态详情(result)
-                this.isConfirm = true;//任务生成成功完成时 要显示确认和取消栏
-                const resultImg = this.$refs.resultImg;
-                resultImg.style.backgroundImage = 'url('+response.data.result.link+')';
-                resultImg.style.backgroundRepeat = 'no-repeat';
-                resultImg.style.backgroundSize = 'cover';
-                resultImg.style.backgroundPosition = 'cover';
-                // this.convertURLToBase64(task.result.link)  
-              }
-            }  
-            else
-              console.log("task==null");
+            tid = response.data.tid;
             console.log("发起生成任务 请求成功了",response);
           },
           error => {
             console.log("发起生成任务 请求失败了",error);
           }
         )
+        return tid;
+      },
+      setTimer(tid){
+        this.timerId = setInterval(() => {//设置一个查询任务状态详情的定时器
+            this.findStatus(tid);
+          }, 3000); // 每隔3秒执行一次
       },
       findStatus(tid){
         console.log("findStatus tid 2:",tid)
         findTaskStatus(tid).then(
               response => {
-                this.tasks = response.data.tasks;
+                this.tasks = response.data.results;
+                const finishTask = this.findTargetFinishedTask(this.tasks);//获得状态为FINISHED的目标task
+                if(finishTask != null)
+                {
+                  console.log("734row findTaskStatus finishTask:",finishTask)
+                  this.displayAfterRenerImage(finishTask);//清除定时器并且加载渲染后的图片
+                }
                 console.log("查询任务状态详情 请求成功了!",response)//待定
               },
               error => {
@@ -819,7 +815,7 @@ export default {
         this.isConfirm = false;//返回原来的画布
         // this.convertURLToBase64(this.detail.canvas.link);//返回原来的画布
       },
-    getDuringGeneration(){
+      getDuringGeneration(){
       // console.log("getDuringGeneration:",this.detail.status == 'RUNNING')
       // return true;
       let isStatus;
@@ -865,6 +861,22 @@ export default {
           console.log("覆盖当前画布 请求失败了!",error)
         }
       )
+    },
+    displayAfterRenerImage(finishTask){//清除定时器并且加载渲染后的图片
+      if (this.timerId) {//清除查询任务状态详情定时器
+          clearInterval(this.timerId);
+          // console.log("taskGenerate :",finishTask.result.link)
+          this.isDuringGeneration = false;
+          // this.findStatus();//任务完成时再次调用 拿到最新的任务状态详情(result)
+          this.isConfirm = true;//任务生成成功完成时 要显示确认和取消栏
+          const resultImg = this.$refs.resultImg;
+          console.log("890row response.data:",finishTask)
+          resultImg.style.backgroundImage = 'url('+finishTask.result.link+')';
+          resultImg.style.backgroundRepeat = 'no-repeat';
+          resultImg.style.backgroundSize = 'cover';
+          resultImg.style.backgroundPosition = 'cover';
+                // this.convertURLToBase64(task.result.link)  
+        }
     }
   },
   computed:{

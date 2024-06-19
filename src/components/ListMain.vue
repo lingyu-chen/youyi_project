@@ -8,7 +8,7 @@
           <div class="time-remaining">模型生成中，剩余时间大约还有  {{dayjs.duration(getLeftTime(item.tasks), 'seconds').format('HH:mm:ss')}}</div>         
         </div>  
         <div class="text-container">
-          <div class="text-content cancel-content" @click.stop="listCancel(item.tasks)">
+          <div class="text-content cancel-content" @click.stop="listCancel(item.tasks,index)">
             <span class="cancel-btn text-common project-name"><i class="el-icon-close"></i> 取消</span>
           </div>
         </div>
@@ -69,7 +69,8 @@ export default {
         response => {
           console.log('请求成功了!',response.data);
           this.projectList = response.data.items;
-          //console.log('请求成功了this.projectList!',this.projectList);
+          this.setTimer();//定时器开启
+          console.log('请求成功了this.projectList!',this.projectList);
         },
           error => {
             console.log('请求失败了!',error);
@@ -122,7 +123,7 @@ export default {
       else
         return Math.floor(seconds/60/60/24/30)+"月";
     },
-    listCancel(tasks){
+    listCancel(tasks,index){
       let tid;
       for(var i=0;i<tasks.length;i++)
       {
@@ -135,18 +136,21 @@ export default {
         cancelTask(tid).then(
           response => {
             console.log("取消任务 请求成功了!",response)
-            this.getProjectsList();
+            this.$set(this.projectList,index,this.projectList[index]);
+            // this.getProjectsList();
           },
           error => {
             console.log("取消任务 请求失败了!",error)
           }
         )
     },
-    findStatus(item,tid){
+    findStatus(item,tid,index){
         console.log("findStatus tid 2:",tid)
         findTaskStatus(tid).then(
               response => {
-                item.tasks = response.data.tasks;
+                item.tasks = response.data.results;
+                this.$set(this.projectList,index,item);
+                console.log("首页 response.data:",response.data)
                 const finishTask = this.findTargetFinishedTask(item.tasks);//获得状态为FINISHED的目标task
                 console.log("taskGenerate finishTask:",finishTask)
                 if(finishTask != null)
@@ -177,35 +181,45 @@ export default {
           }   
         }
     },
+    setTimer(){
+      // console.log("定时器1",this.projectList)
+      //   await this.getProjectsList();
+      //   console.log("定时器2",this.projectList)
+        this.projectList.forEach((item, index) => {
+        console.log("定时器")
+        if (item.status == 'RUNNING') {
+          // 设置定时器，使用了3秒钟后移除条件
+          console.log("定时器:",item)
+          let tid;
+          const tasks = item.tasks;
+          for(var i=0;i<tasks.length;i++)
+          {
+            if((tasks[i].status == 'RUNNING') || (tasks[i].status == 'READY') || (tasks[i].status == 'UPLOADING'))
+            {
+              tid = tasks[i].tid;
+            }   
+          }
+          // item.timerId = setTimeout(() => {
+          //   this.findStatus(item,tid);
+          // }, 3000);
+          item.timerId = setInterval(() => {//设置一个查询任务状态详情的定时器
+            this.findStatus(item,tid,index);
+            }, 1000); // 每隔3秒执行一次
+        }
+      });
+    }
   },
   mounted() {//http://localhost:8080/api/aigid/v1/project/list
     console.log("列表页面");
     this.getProjectsList();
-    this.projectList.forEach((item, index) => {
-      if (item.status == 'RUNNING') {
-        // 设置定时器，使用了3秒钟后移除条件
-        let tid;
-        for(var i=0;i<tasks.length;i++)
-        {
-          const tasks = item.tasks;
-          if((tasks[i].status == 'RUNNING') || (tasks[i].status == 'READY') || (tasks[i].status == 'UPLOADING'))
-          {
-            tid = tasks[i].tid;
-          }   
-        }
-        item.timerId = setTimeout(() => {
-          this.findStatus(item,tid);
-        }, 3000);
-      }
-    });
   },
   beforeDestroy() {
     // 清除定时器
-    this.projectList.forEach(item => {
-      if (item.timerId) {
-        clearTimeout(item.timerId);
-      }
-    });
+    // this.projectList.forEach(item => {
+    //   if (item.timerId) {
+    //     clearTimeout(item.timerId);
+    //   }
+    // });
   },
   watch:{
      typeValue(newValue)
