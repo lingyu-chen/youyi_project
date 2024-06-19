@@ -677,8 +677,9 @@ export default {
                 if(response.data.status == true)
                 {
                   const tid = await this.getTaskGenerate(projectId);//调用发起生成任务接口
-                  console.log("async tid")
+                  
                   this.setTimer(tid)
+                  console.log("async tid")
                   console.log("文件保存成功");
                 }
                   
