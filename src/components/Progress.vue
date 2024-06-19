@@ -30,7 +30,7 @@
         //渲染到页面的时候
         mounted() {
             this.$bus.$on('getInitialPercntage',(percentage)=>{
-                this.percentage = percentage*100
+                this.percentage = percentage
                 console.log("props RateValue:",this.percentage)
             })
         },
