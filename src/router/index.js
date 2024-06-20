@@ -11,6 +11,9 @@ import CanvasTestTwo from '../components/CanvasTestTwo'
 //创建并暴露一个路由器
 export default new VueRouter({
     routes: [{
+            path: '/',
+            redirect: '/login'
+        }, , {
             path: '/login',
             name: 'Login',
             component: Login,

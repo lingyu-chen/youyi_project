@@ -784,7 +784,7 @@ export default {
       const reader = new FileReader();
       reader.readAsDataURL(file); // 读取文件为Base64
       reader.onload = (e) => {
-        console.log("图片的Base64编码：", e.target.result);
+        // console.log("图片的Base64编码：", e.target.result);
         // 这里可以执行其他逻辑，比如将Base64存储起来或者上传到服务器
         const imageUrl = e.target.result;
         fabric.Image.fromURL(imageUrl, (img) => {
@@ -1124,7 +1124,7 @@ export default {
         // this.findStatus();//任务完成时再次调用 拿到最新的任务状态详情(result)
         this.isConfirm = true; //任务生成成功完成时 要显示确认和取消栏
         const resultImg = this.$refs.resultImg;
-        console.log("890row response.data:", finishTask);
+        // console.log("890row response.data:", finishTask);
         resultImg.style.backgroundImage = "url(" + finishTask.result.link + ")";
         resultImg.style.backgroundRepeat = "no-repeat";
         resultImg.style.backgroundSize = "cover";

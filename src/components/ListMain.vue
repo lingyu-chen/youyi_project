@@ -1,36 +1,58 @@
 <template>
   <div class="row">
-    <div v-for="(item,index) in projectList" :key="index" class="project-list">
-      <div class="list" v-if="item.status == 'RUNNING'" @click="jumpPage(item.type,item.id,item.name)">
+    <div v-for="(item, index) in projectList" :key="index" class="project-list">
+      <div
+        class="list"
+        v-if="item.status == 'RUNNING'"
+        @click="jumpPage(item.type, item.id, item.name)"
+      >
         <div class="status-running">
-          <el-progress type="circle" :percentage="getProgress(item.tasks)" :stroke-width="8"
-                       color="#fff"></el-progress>
+          <el-progress
+            type="circle"
+            :percentage="getProgress(item.tasks)"
+            :stroke-width="8"
+            color="#fff"
+          ></el-progress>
           <div class="project-name">{{ item.name }}</div>
-          <div class="time-remaining">模型生成中，剩余时间大约还有
-            {{ dayjs.duration(getLeftTime(item.tasks), 'seconds').format('HH:mm:ss') }}
+          <div class="time-remaining">
+            模型生成中，剩余时间大约还有
+            {{
+              dayjs
+                .duration(getLeftTime(item.tasks), "seconds")
+                .format("HH:mm:ss")
+            }}
           </div>
         </div>
         <div class="text-container">
-          <div class="text-content cancel-content" @click.stop="listCancel(item.tasks,index)">
-            <span class="cancel-btn text-common project-name"><i class="el-icon-close"></i> 取消</span>
+          <div
+            class="text-content cancel-content"
+            @click.stop="listCancel(item.tasks, index)"
+          >
+            <span class="cancel-btn text-common project-name"
+              ><i class="el-icon-close"></i> 取消</span
+            >
           </div>
         </div>
       </div>
-      <div class="list" v-else @click="jumpPage(item.type,item.id,item.name)">
-        <img :src="item.previewLink" alt="" class="list-image">
+      <div class="list" v-else @click="jumpPage(item.type, item.id, item.name)">
+        <img :src="item.previewLink" alt="" class="list-image" />
         <div class="text-container">
           <div class="text-content">
-            <span class="text-common project-name">{{ item.name }}{{ item.type }}</span>
-            <span class="text-common edit-time">编辑于 {{ modifyTime(item.modifyTime) }}以前</span>
+            <span class="text-common project-name"
+              >{{ item.name }}{{ item.type }}</span
+            >
+            <span class="text-common edit-time"
+              >编辑于 {{ modifyTime(item.modifyTime) }}以前</span
+            >
           </div>
           <div class="icon-more">
-            <i class="el-icon-more" style="transform: rotate(90deg);"></i>
+            <i class="el-icon-more" style="transform: rotate(90deg)"></i>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="project-list" @click="jumpPage('picgen')">
+    <!-- <div class="project-list" @click="jumpPage('picgen')">
       <div class="list" v-if="1 == 1">
         <img src="../assets/图片11.png" alt="" class="list-image">
         <div class="text-container">
@@ -41,51 +63,56 @@
           <div class="icon-more">
             <i class="el-icon-more" style="transform: rotate(90deg);"></i>
           </div>
-          <!-- 三个点 -->
+      
         </div>
       </div>
       <div class="list" v-else></div>
-    </div>
+    </div> -->
   </div>
 </template>
 
 <script>
-import axios from 'axios';
-import dayjs from 'dayjs';
-import duration from 'dayjs/plugin/duration';
+import axios from "axios";
+import dayjs from "dayjs";
+import duration from "dayjs/plugin/duration";
 
 dayjs.extend(duration);
 
-import {getProjectLists, cancelTask, findTaskStatus} from '../api/index'
+import { getProjectLists, cancelTask, findTaskStatus } from "../api/index";
 
 export default {
-  props: ['typeValue'],
+  props: ["typeValue"],
   data() {
     return {
       projectList: [],
       dayjs,
-      leftTime: 0,//RUNNING状态下的剩余时间
-    }
+      leftTime: 0, //RUNNING状态下的剩余时间
+    };
   },
   methods: {
     getProjectsList() {
       getProjectLists("").then(
-          response => {
-            console.log('请求成功了!', response.data);
-            this.projectList = response.data.items;
-            this.setTimer();//定时器开启
-            console.log('请求成功了this.projectList!', this.projectList);
-          },
-          error => {
-            console.log('请求失败了!', error);
-          }
-      )
+        (response) => {
+          console.log("请求成功了!", response.data);
+          this.projectList = response.data.items;
+          this.setTimer(); //定时器开启
+          console.log("请求成功了this.projectList!", this.projectList);
+        },
+        (error) => {
+          console.log("请求失败了!", error);
+        }
+      );
     },
-    getLeftTime(tasks)//获取RUNNING状态下的leftTime
-    {
-      console.log("getLeftTime:", tasks)
+    getLeftTime(
+      tasks //获取RUNNING状态下的leftTime
+    ) {
+      console.log("getLeftTime:", tasks);
       for (var i = 0; i < tasks.length; i++) {
-        if ((tasks[i].status == 'RUNNING') || (tasks[i].status == 'READY') || (tasks[i].status == 'UPLOADING')) {
+        if (
+          tasks[i].status == "RUNNING" ||
+          tasks[i].status == "READY" ||
+          tasks[i].status == "UPLOADING"
+        ) {
           this.leftTime = tasks[i].leftTime;
           // console.log("getLeftTime:",tasks[i].leftTime)
           return tasks[i].leftTime;
@@ -94,81 +121,82 @@ export default {
     },
     getProgress(tasks) {
       for (var i = 0; i < tasks.length; i++) {
-        if (tasks[i].status == 'RUNNING' || 'READY' || 'UPLOADING') {
+        if (tasks[i].status == "RUNNING" || "READY" || "UPLOADING") {
           // this.leftTime = tasks[i].leftTime;
           // console.log("getLeftTime:",tasks[i].leftTime)
-          return Math.round(tasks[i].progress*100);
+          return Math.round(tasks[i].progress * 100);
         }
       }
     },
     jumpPage(type, id, name) {
-      console.log("jumpPage name:", name)
+      console.log("jumpPage name:", name);
       if (type == "picgen") {
-        this.$router.push({path: '/home/generation', query: {type: type, id: id, name: name}});
+        this.$router.push({
+          path: "/home/generation",
+          query: { type: type, id: id, name: name },
+        });
       }
     },
     modifyTime(time) {
       var seconds = Math.floor((Date.now() - time) / 1000);
-      if (seconds < 60)
-        return seconds + "秒";
-      else if (seconds < 60 * 60)
-        return Math.floor(seconds / 60) + "分钟";
+      if (seconds < 60) return seconds + "秒";
+      else if (seconds < 60 * 60) return Math.floor(seconds / 60) + "分钟";
       else if (seconds < 60 * 60 * 24)
         return Math.floor(seconds / 60 / 60) + "小时";
       else if (seconds < 60 * 60 * 24 * 30)
         return Math.floor(seconds / 60 / 60 / 24) + "天";
-      else
-        return Math.floor(seconds / 60 / 60 / 24 / 30) + "月";
+      else return Math.floor(seconds / 60 / 60 / 24 / 30) + "月";
     },
     listCancel(tasks, index) {
       let tid;
       for (var i = 0; i < tasks.length; i++) {
-        if (tasks[i].status == 'RUNNING' || 'READY' || 'UPLOADING') {
+        if (tasks[i].status == "RUNNING" || "READY" || "UPLOADING") {
           tid = tasks[i].tid;
         }
       }
-      console.log("cancelGenerate!", tid)
+      console.log("cancelGenerate!", tid);
       cancelTask(tid).then(
-          response => {
-            console.log("取消任务 请求成功了!", response)
-            findTaskStatus(tid)
-            this.$set(this.projectList, index, this.projectList[index]);
-            // this.getProjectsList();
-          },
-          error => {
-            console.log("取消任务 请求失败了!", error)
-          }
-      )
+        (response) => {
+          console.log("取消任务 请求成功了!", response);
+          findTaskStatus(tid);
+          this.$set(this.projectList, index, this.projectList[index]);
+          // this.getProjectsList();
+        },
+        (error) => {
+          console.log("取消任务 请求失败了!", error);
+        }
+      );
     },
     findStatus(item, tid, index) {
-      console.log("findStatus tid 2:", tid)
+      console.log("findStatus tid 2:", tid);
       findTaskStatus(tid).then(
-          response => {
-            item.tasks = response.data.results;
-            this.$set(this.projectList, index, item);
-            console.log("首页 response.data:", response.data)
-            const finishTask = this.findTargetFinishedTask(item.tasks);//获得状态为FINISHED或CANCELLED的目标task
-            console.log("taskGenerate finishTask:", finishTask)
-            if (finishTask != null) {
-              if (item.timerId) {//清除查询任务状态详情定时器
-                item.status = finishTask.status;
-                this.$set(this.projectList, index, item);
-                clearInterval(item.timerId);
-                console.log("列表页 已清除定时器")
-              }
-            } else
-              console.log("task==null");
-            console.log("列表页 查询任务状态详情 请求成功了!", response)//待定
-          },
-          error => {
-            console.log("列表页 查询任务状态详情 请求失败了!", error)
-          }
-      )
+        (response) => {
+          item.tasks = response.data.results;
+          this.$set(this.projectList, index, item);
+          console.log("首页 response.data:", response.data);
+          const finishTask = this.findTargetFinishedTask(item.tasks); //获得状态为FINISHED或CANCELLED的目标task
+          console.log("taskGenerate finishTask:", finishTask);
+          if (finishTask != null) {
+            if (item.timerId) {
+              //清除查询任务状态详情定时器
+              item.status = finishTask.status;
+              this.$set(this.projectList, index, item);
+              clearInterval(item.timerId);
+              console.log("列表页 已清除定时器");
+            }
+          } else console.log("task==null");
+          console.log("列表页 查询任务状态详情 请求成功了!", response); //待定
+        },
+        (error) => {
+          console.log("列表页 查询任务状态详情 请求失败了!", error);
+        }
+      );
     },
-    findTargetFinishedTask(tasks) {//找到状态为FINISHED的目标task
+    findTargetFinishedTask(tasks) {
+      //找到状态为FINISHED的目标task
       for (var i = 0; i < tasks.length; i++) {
-        if (tasks[i].status == 'FINISHED'|| tasks[i].status == 'CANCELLED') {
-          return tasks[i]
+        if (tasks[i].status == "FINISHED" || tasks[i].status == "CANCELLED") {
+          return tasks[i];
         } else {
           return null;
         }
@@ -179,28 +207,34 @@ export default {
       //   await this.getProjectsList();
       //   console.log("定时器2",this.projectList)
       this.projectList.forEach((item, index) => {
-        console.log("定时器")
-        if (item.status == 'RUNNING') {
+        console.log("定时器");
+        if (item.status == "RUNNING") {
           // 设置定时器，使用了3秒钟后移除条件
-          console.log("定时器:", item)
+          console.log("定时器:", item);
           let tid;
           const tasks = item.tasks;
           for (var i = 0; i < tasks.length; i++) {
-            if ((tasks[i].status == 'RUNNING') || (tasks[i].status == 'READY') || (tasks[i].status == 'UPLOADING')) {
+            if (
+              tasks[i].status == "RUNNING" ||
+              tasks[i].status == "READY" ||
+              tasks[i].status == "UPLOADING"
+            ) {
               tid = tasks[i].tid;
             }
           }
           // item.timerId = setTimeout(() => {
           //   this.findStatus(item,tid);
           // }, 3000);
-          item.timerId = setInterval(() => {//设置一个查询任务状态详情的定时器
+          item.timerId = setInterval(() => {
+            //设置一个查询任务状态详情的定时器
             this.findStatus(item, tid, index);
           }, 1000); // 每隔3秒执行一次
         }
       });
-    }
+    },
   },
-  mounted() {//http://localhost:8080/api/aigid/v1/project/list
+  mounted() {
+    //http://localhost:8080/api/aigid/v1/project/list
     console.log("列表页面");
     this.getProjectsList();
   },
@@ -216,30 +250,30 @@ export default {
     typeValue(newValue) {
       //console.log("typeValue:",newValue);
       getProjectLists(newValue).then(
-          response => {
-            console.log('请求成功了!', response.data);
-            this.projectList = response.data.items;
-            //console.log('请求成功了this.projectList!',this.projectList);
-          },
-          error => {
-            console.log('请求失败了!', error);
-          }
-      )
+        (response) => {
+          console.log("请求成功了!", response.data);
+          this.projectList = response.data.items;
+          //console.log('请求成功了this.projectList!',this.projectList);
+        },
+        (error) => {
+          console.log("请求失败了!", error);
+        }
+      );
     },
     leftTime(newVal, oldVal) {
       if (this.leftTime != 0) {
         getProjectLists("").then(
-            response => {
-              console.log('请求成功了!', response.data);
-              this.projectList = response.data.items;
-              //console.log('请求成功了this.projectList!',this.projectList);
-            },
-            error => {
-              console.log('请求失败了!', error);
-            }
-        )
+          (response) => {
+            console.log("请求成功了!", response.data);
+            this.projectList = response.data.items;
+            //console.log('请求成功了this.projectList!',this.projectList);
+          },
+          (error) => {
+            console.log("请求失败了!", error);
+          }
+        );
       }
-    }
+    },
   },
   computed: {
     // getLeftTime(tasks)//获取RUNNING状态下的leftTime
@@ -250,11 +284,11 @@ export default {
     //     {
     //       console.log("getLeftTime:",tasks[i].leftTime)
     //       return tasks[i].leftTime;
-    //     }   
+    //     }
     //   }
-    // }, 
-  }
-}
+    // },
+  },
+};
 </script>
 
 <style lang="scss" scoped>
@@ -265,7 +299,6 @@ export default {
 }
 
 .row {
-
 }
 
 .project-list {
@@ -310,7 +343,8 @@ export default {
           height: 96px;
         }
 
-        path:first-child { // 修改进度条背景色
+        path:first-child {
+          // 修改进度条背景色
           stroke: #535353;
         }
 
@@ -409,5 +443,4 @@ export default {
     }
   }
 }
-
 </style>
