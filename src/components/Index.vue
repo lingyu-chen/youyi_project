@@ -123,6 +123,7 @@ export default {
       typeValue: "", //顶部导航栏选中时的type类型
       typeVal: "picgen", //创建项目时选中的类型
       features: [], //功能列表
+      randomId: 0,
     };
   },
   methods: {
@@ -145,7 +146,7 @@ export default {
       console.log("createProject type:", this.typeVal);
       const data = {
         type: this.typeVal,
-        name: "项目名称 新增",
+        name: "newtestproject" + this.randomId++,
       };
       projectCreate(data).then(
         async (response) => {
