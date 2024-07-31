@@ -23,35 +23,30 @@
     <router-view>
       <!-- <Home></Home> -->
     </router-view>
-    
   </div>
 </template>
 
 <script>
-import Home from './components/Home.vue'
+import Home from "./components/Home.vue";
 // import HelloWorld from './components/HelloWorld.vue'
-import Index from './components/Index.vue';
-import TwoDGeneration from './components/TwoDGeneration.vue';
+import Index from "./components/Index.vue";
+import TwoDGeneration from "./components/TwoDGeneration.vue";
 
-import axios from 'axios'
+import axios from "axios";
 
 export default {
-  name: 'App',
+  name: "App",
   components: {
     // HelloWorld
     Index,
     TwoDGeneration,
-    Home
+    Home,
   },
   data() {
-      return {
-
-      };
-    },
-    methods: {
-
-    }
-}
+    return {};
+  },
+  methods: {},
+};
 </script>
 
 <style lang="scss">
@@ -60,16 +55,25 @@ export default {
   margin: 0;
   padding: 0;
 }
-.clear:after{content:'';display:block;clear:both;height:0;overflow:hidden;visibility:hidden;}
-.clear{zoom:1;}
-
+.clear:after {
+  content: "";
+  display: block;
+  clear: both;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+.clear {
+  zoom: 1;
+}
 
 /* 隐藏浏览器自带的滚动条 */
 ::-webkit-scrollbar {
   width: 0 !important;
 }
 ::-webkit-scrollbar {
-  width: 0 !important;height: 0;
+  width: 0 !important;
+  height: 0;
 }
 
 // .el-header {
@@ -116,7 +120,7 @@ export default {
 //         color: #535353;
 //       }
 //     }
-    
+
 //   }
 // }
 // .el-main {
@@ -154,20 +158,19 @@ export default {
 //   top: 11px;
 // }
 @font-face {
-  font-family:AliMedium;
-  src:url('./assets/font/AlibabaPuHuiTi-2-65-Medium.ttf')
+  font-family: AliMedium;
+  src: url("./assets/font/AlibabaPuHuiTi-2-65-Medium.ttf");
 }
 @font-face {
-  font-family:AliRegular;
-  src:url('./assets/font/AlibabaPuHuiTi-2-55-Regular.ttf')
+  font-family: AliRegular;
+  src: url("./assets/font/AlibabaPuHuiTi-2-55-Regular.ttf");
+}
+@font-face {
+  font-family: AliBold;
+  src: url("./assets/font/AlibabaPuHuiTi-2-85-Bold.ttf");
 }
 
-/* #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-} */
+// #app {
+//   overflow: scroll;
+// }
 </style>

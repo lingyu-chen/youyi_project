@@ -187,6 +187,7 @@ export default {
       addStack: [], //画布添加操作
       undoStack: [], //画布 橡皮擦除操作
       redoStack: [], //画布 橡皮擦除撤销之后恢复操作
+      isSelecting: true, //是否进行选择
     };
   },
   methods: {
@@ -304,6 +305,7 @@ export default {
                   top: minY,
                   width: w,
                   height: h,
+                  absolutePositioned: true, // 设置为绝对定位
                 });
                 break;
               case "c":
@@ -314,6 +316,7 @@ export default {
                       left: minX,
                       top: minY,
                       radius: radius,
+                      absolutePositioned: true, // 设置为绝对定位
                     });
                   } else {
                     shape.set({
@@ -321,6 +324,7 @@ export default {
                       top: minY,
                       rx: w / 2,
                       ry: h / 2,
+                      absolutePositioned: true, // 设置为绝对定位
                     });
                   }
                 }
@@ -337,6 +341,7 @@ export default {
                   y1,
                   x2,
                   y2,
+                  absolutePositioned: true, // 设置为绝对定位
                 });
                 break;
               default:

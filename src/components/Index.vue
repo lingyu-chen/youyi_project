@@ -46,6 +46,7 @@
     </el-menu>
     <ListMain :typeValue="typeValue"></ListMain>
     <!-- 悬停渐变 -->
+    <div class="hover-gradient-low"></div>
     <div class="hover-gradient">
       <div class="footer-navigation" @select="handleSelectFooter">
         <span
@@ -72,7 +73,16 @@
           ><img :src="select != 3 ? Checkbox : CheckboxSelected" alt="" />2D to
           3D</span
         >
-        <span class="span-item4" @click="createProject()"
+        <span
+          class="span-item4"
+          @click="createProject()"
+          v-if="isGeneration() || isAIRender() || isTwo()"
+          ><img src="../assets/add.png" alt="" />创建项目</span
+        >
+        <span
+          class="span-item4"
+          v-else
+          style="background: #969696; cursor: not-allowed"
           ><img src="../assets/add.png" alt="" />创建项目</span
         >
       </div>
@@ -123,7 +133,7 @@ export default {
       typeValue: "", //顶部导航栏选中时的type类型
       typeVal: "picgen", //创建项目时选中的类型
       features: [], //功能列表
-      randomId: 0,
+      randomId: 1,
     };
   },
   methods: {
@@ -191,6 +201,7 @@ export default {
   },
   mounted() {
     //获取功能列表
+    setTimeout(() => {}, 6000); //等待6秒钟，在首页获得最新的（在详情页有修改，并在返回时保存）项目名称
     getFeatureLists().then(
       (response) => {
         this.features = response.data.features;
@@ -244,7 +255,9 @@ export default {
     border-bottom: 0;
   }
 }
-.hover-gradient {
+.hover-gradient-low {
+  //蒙版区域
+  pointer-events: none; //点击不到，点击会穿透触发到下层的元素
   position: fixed;
   left: 0;
   bottom: 0;
@@ -252,6 +265,17 @@ export default {
   height: 328px;
   background: linear-gradient(to bottom, transparent 31%, #000);
   color: #535353;
+  padding: 10px 0;
+}
+.hover-gradient {
+  // pointer-events: none;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  // height: 328px;
+  // background: linear-gradient(to bottom, transparent 31%, #000);
+  // color: #535353;
   padding: 10px 0;
   // text-align: center;
   .footer-navigation {

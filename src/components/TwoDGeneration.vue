@@ -74,6 +74,10 @@
                     v-model="colorPicker"
                     @input="colorValueChange"
                   />
+                  <el-slider
+                    v-model="paintWidth"
+                    style="margintop: 5px"
+                  ></el-slider>
                 </el-popover>
                 <div
                   class="color-picker"
@@ -170,6 +174,8 @@
                 :limit="2"
                 :on-exceed="handleExceed"
                 :file-list="fileList"
+                accept=".jpg,.jpeg,.png"
+                list-type="picture"
               >
                 <el-button
                   size="small"
@@ -191,7 +197,7 @@
           </div>
           <div class="line-right"></div>
           <div class="twoD-generation-container">
-            <div class="twoD-generation">
+            <div class="twoD-generation" style="cursor: not-allowed">
               <img src="../assets/generationicon.png" alt="" />2D to 3D
             </div>
           </div>
@@ -217,6 +223,12 @@
       </div>
       <div class="cancel-button" @click="cancelGenerate()">
         <i class="el-icon-close" style="margin-right: 10px"></i>取消
+      </div>
+    </div>
+    <div class="history-img-zoom" v-show="isZoomImg">
+      <div class="img-icon-container">
+        <img src="" alt="" ref="zoomImg" />
+        <i class="el-icon-circle-close" @click="closeZoomImg"></i>
       </div>
     </div>
     <div class="result-img-container" v-show="isConfirm">
@@ -275,13 +287,24 @@
           <!-- <div class="el-upload__tip" slot="tip">只能上传jpg/png文件，且不超过500kb</div> -->
         </el-upload>
       </div>
+      <div class="style-duration">
+        <div class="duration-content">
+          <span>风格延续</span>
+          <el-switch
+            v-model="durationValue"
+            active-color="#00a700"
+            inactive-color="#577899"
+            class="duration-switch"
+          ></el-switch>
+        </div>
+      </div>
       <div class="history-record">
         <div class="history-text">历史记录</div>
         <div class="history-images">
           <div class="img-hover" v-for="(item, index) in history" :key="index">
             <!-- <div class="history-img" :style="{ backgroundImage: 'url('+item.preLink+')' }"></div> -->
             <img :src="item.preLink" alt="" class="history-img" />
-            <div class="hover-gray-img">
+            <div class="hover-gray-img" @click="zoomHistoryImg(item.link)">
               <div class="hover-gray"></div>
               <img src="../assets/Vector.png" alt="" class="vector-img" />
             </div>
@@ -296,10 +319,23 @@
         </div>
       </div>
       <div class="generation-scheme">
-        <el-button disabled v-if="isAmongGeneration"
+        <el-button
+          style="background: #412cbe; cursor: not-allowed"
+          v-if="isAmongGeneration"
           >AI 方案生成中...
         </el-button>
-        <el-button @click="generateScheme()" v-else>AI 生成方案</el-button>
+        <el-button
+          class="generation-scheme-btn"
+          v-else-if="isConfirm"
+          style="background: #412cbe; cursor: not-allowed"
+          >AI 生成方案</el-button
+        >
+        <el-button
+          @click="generateScheme()"
+          v-else
+          class="generation-scheme-btn"
+          >AI 生成方案</el-button
+        >
       </div>
     </div>
   </div>
@@ -323,6 +359,7 @@ import {
   cancelTask,
   findTaskStatus,
   fileOverwrite,
+  fileRelease,
 } from "@/api/index";
 import { Sketch } from "vue-color";
 import { fabric } from "fabric-with-erasing";
@@ -332,6 +369,44 @@ window.fabric = fabric;
 let f = null;
 // let canvas = ref();
 let drawType;
+//画布fabricjs相关设置
+
+// 虚线的样式，数组中第一个数字表示虚线的点，第二个数字表示间隔
+fabric.Object.prototype.borderDashArray = [5, 5];
+// 缩放控制框和图片本体之间的距离
+fabric.Object.prototype.padding = 5;
+// 缩放控制线颜色
+fabric.Object.prototype.borderColor = "#000";
+// 控制点形状 rect 或 circle
+// 单独调这里不起作用
+fabric.Object.prototype.cornerStyle = "rect";
+// 控制点颜色
+fabric.Object.prototype.cornerColor = "#fff";
+// 控制点大小
+fabric.Object.prototype.cornerSize = 4;
+// 修改控制点的边框颜色为`#000`黑色
+fabric.Object.prototype.cornerStrokeColor = "#000";
+// 控制点不透明
+fabric.Object.prototype.transparentCorners = false;
+// 旋转控制点的指针样式
+fabric.Object.prototype.controls.mtr.cursorStyle = "grab";
+//旋转控制点到主体的线是否显示
+fabric.Object.prototype.controls.mtr.withConnection = true;
+// 单独修改旋转控制点距离主体的纵向距离为-20px
+fabric.Object.prototype.controls.mtr.offsetY = -20;
+
+// 0 没有选中
+// 1 正在平移、缩放、旋转一个物体
+// 2 正在框选区域
+// 3 画图
+// 4 自由绘画（画笔）
+// 5 橡皮擦
+let canvasStatus = 0;
+
+let tarObj;
+let tarDrawObj; //形状绘图时的对象 目的是选中一次之后不再能选中
+let rect = null;
+//画布fabricjs相关设置
 export default {
   components: {
     // HelloWorld
@@ -357,7 +432,7 @@ export default {
       context: null,
       width: 720,
       height: 720,
-      paintWidth: 2,
+      paintWidth: 2, //画笔宽度
       colors: "red",
       colorPicker: "#f00",
       //画布 形状绘图部分
@@ -413,50 +488,14 @@ export default {
       tasks: [], //用于查询任务状态赋值
       isConfirm: false, //是否是任务生成以后的确认状态 点击生成方案时置为 true,false
       tid: "",
+      durationValue: false, //风格延续绑定的boolean值
+      isZoomImg: false, //是否放大历史图片，初始值设为false
       // operations:this.$refs.canvas._objects,//操作列表
     };
   },
   mounted() {
     //画布 形状绘制
     this.canvas = f = new fabric.Canvas("c");
-    //设置选中样式
-    fabric.Object.prototype.transparentCorners = false;
-    fabric.Object.prototype.cornerColor = "#2080f0";
-    fabric.Object.prototype.cornerStyle = "circle";
-    fabric.Object.prototype.cornerSize = 8;
-    fabric.Object.prototype.borderColor = "#2080f0";
-
-    var deleteIcon =
-      "data:image/svg+xml,%3C%3Fxml version='1.0' encoding='utf-8'%3F%3E%3C!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.1//EN' 'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'%3E%3Csvg version='1.1' id='Ebene_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' width='595.275px' height='595.275px' viewBox='200 215 230 470' xml:space='preserve'%3E%3Ccircle style='fill:%23F44336;' cx='299.76' cy='439.067' r='218.516'/%3E%3Cg%3E%3Crect x='267.162' y='307.978' transform='matrix(0.7071 -0.7071 0.7071 0.7071 -222.6202 340.6915)' style='fill:white;' width='65.545' height='262.18'/%3E%3Crect x='266.988' y='308.153' transform='matrix(0.7071 0.7071 -0.7071 0.7071 398.3889 -83.3116)' style='fill:white;' width='65.544' height='262.179'/%3E%3C/g%3E%3C/svg%3E";
-
-    var img = document.createElement("img");
-    img.src = deleteIcon;
-
-    fabric.Object.prototype.controls.deleteControl = new fabric.Control({
-      x: 0.5,
-      y: -0.5,
-      offsetY: 16,
-      cursorStyle: "pointer",
-      mouseUpHandler: deleteObject,
-      render: renderIcon,
-      cornerSize: 24,
-    });
-    function deleteObject(eventData, transform) {
-      var target = transform.target;
-      var canvas = target.canvas;
-      canvas.remove(target);
-      canvas.requestRenderAll();
-    }
-
-    function renderIcon(ctx, left, top, styleOverride, fabricObject) {
-      var size = this.cornerSize;
-      ctx.save();
-      ctx.translate(left, top);
-      ctx.rotate(fabric.util.degreesToRadians(fabricObject.angle));
-      // ctx.drawImage(img, -size / 4, -size / 2, size / 2, size / 2);
-      ctx.drawImage(img, -size / 4, -size / 2, size / 2, size / 2);
-      ctx.restore();
-    }
     //设置选中样式
 
     drawType = "";
@@ -477,15 +516,7 @@ export default {
     //获取项目详情
     this.getProjectDetails();
     //获取历史记录图片
-    getHistoryList(this.$route.query.id).then(
-      (response) => {
-        this.history = response.data.history;
-        console.log("获取历史记录图片请求成功了！", this.history);
-      },
-      (error) => {
-        console.log("获取详情请求失败了!", error);
-      }
-    );
+    this.getHistoryLists();
     // this.$refs.iconPaint.style.color = '#fff';//初始化画笔颜色为白色
     // this.drawImageOnCanvas(this.detail.canvas.link);//将图片加载到画布上
   },
@@ -495,6 +526,11 @@ export default {
       console.log("cancelTask this.timerId:", this.timerId);
       clearInterval(this.timerId);
     }
+    this.getProjectSave(); //在退出页面时保存项目
+    console.log(
+      "beforeDestroy projectNameState:",
+      this.$store.state.projectNameState
+    );
   },
   methods: {
     getProjectDetails() {
@@ -502,6 +538,11 @@ export default {
       getProjectDetail(this.$route.query.id).then(
         async (response) => {
           this.detail = response.data;
+          this.$store.commit("UPDATEPROJECTNAME", this.detail.name);
+          console.log(
+            "getProjectDetails projectNameState:",
+            this.$store.state.projectNameState
+          );
           this.percentage = this.detail.aiRate * 100;
 
           this.promptStr =
@@ -539,6 +580,18 @@ export default {
         }
       );
     },
+    getHistoryLists() {
+      //获取历史记录图片
+      getHistoryList(this.$route.query.id).then(
+        (response) => {
+          this.history = response.data.history;
+          console.log("获取历史记录图片请求成功了！", this.history);
+        },
+        (error) => {
+          console.log("获取详情请求失败了!", error);
+        }
+      );
+    },
     drawImageOnCanvas(imageUrl) {
       // console.log("加载画布中...",this.imageSrc)
       // this.convertURLToBase64(imageUrl)
@@ -551,7 +604,19 @@ export default {
           top: 100,
           width: img.width,
           height: img.height,
+          hasControls: false,
+          selectable: false,
+          hoverCursor: "default",
         });
+        var canvasWidth = this.canvas.getWidth();
+        var canvasHeight = this.canvas.getHeight();
+        if (img.width > canvasWidth || img.height > canvasHeight) {
+          // 计算缩放比例，使图片适合画布的80%大小
+          var scaleX = (canvasWidth * 0.8) / img.width;
+          var scaleY = (canvasHeight * 0.8) / img.height;
+          var scale = scaleX < scaleY ? scaleX : scaleY; // 取宽度和高度的最小值
+          img.scale(scale);
+        }
         console.log("加载画布中...");
         this.canvas.add(img);
         this.canvas.centerObject(img);
@@ -566,6 +631,7 @@ export default {
     startPaint() {
       console.log("开启自由绘画");
       this.alphaValue = ""; //关闭形状绘画
+      canvasStatus = 4; //画笔状态
       this.freeDraw();
     },
     freeDraw() {
@@ -580,6 +646,18 @@ export default {
       this.canvas.freeDrawingBrush = new fabric.PencilBrush(this.canvas);
       this.canvas.freeDrawingBrush.color = this.colors;
       this.canvas.freeDrawingBrush.width = this.paintWidth;
+      // 开始绘制前，设置画笔绘制的对象为不可选择
+      // 监听绘制完成事件
+      this.canvas.on("path:created", function (e) {
+        // 获取绘制的路径对象
+        var path = e.path;
+
+        // 设置路径为不可选择
+        path.set({
+          selectable: false,
+          evented: false,
+        });
+      });
       this.canvas.renderAll();
     },
     // 颜色值改变事件处理
@@ -594,25 +672,48 @@ export default {
     //橡皮擦功能
     startEraser() {
       this.alphaValue = ""; //关闭形状绘画
+      canvasStatus = 5; //设置为橡皮擦状态
       console.log("startEraser this.drawType:", this.drawType);
-      this.canvas.freeDrawingBrush = new fabric.EraserBrush(this.canvas);
-      this.canvas.freeDrawingBrush.width = 10;
-      this.canvas.isDrawingMode = true;
-      // this.$refs.iconPaint.style.color = '#fff';
+      if (this.canvas == null) {
+        this.canvas = new fabric.Canvas("c");
+        // this.canvas.backgroundColor = '#efefef';
+        // this.canvas.isDrawingMode= 1;
+      }
+      this.canvas.isDrawingMode = 1;
+      console.log("startEraser startEraser startEraser");
+      this.canvas.freeDrawingBrush = new fabric.PencilBrush(this.canvas);
+      this.canvas.freeDrawingBrush.color = "#fff";
+      this.canvas.freeDrawingBrush.width = this.paintWidth;
+      // 开始绘制前，设置画笔绘制的对象为不可选择
+      // 监听绘制完成事件
+      this.canvas.on("path:created", function (e) {
+        // 获取绘制的路径对象
+        var path = e.path;
+
+        // 设置路径为不可选择
+        path.set({
+          selectable: false,
+          evented: false,
+        });
+      });
+      this.canvas.renderAll();
     },
     //画布 形状绘图部分
     initHotkey() {
       hotkeys("r", () => {
         // 矩形
         drawType = "r"; // 简单写个值，在业务里建议定义枚举类较好。
+        canvasStatus = 3; //设置为形状绘画
       });
       hotkeys("l", () => {
         // 直线
         drawType = "l"; // 简单写个值，在业务里建议定义枚举类较好。
+        canvasStatus = 3; //设置为形状绘画
       });
       hotkeys("c", () => {
         // 圆形
         drawType = "c"; // 简单写个值，在业务里建议定义枚举类较好。
+        canvasStatus = 3; //设置为形状绘画
       });
       hotkeys("*", { keyup: true }, (evn, handler) => {
         if (evn.type === "keydown" && hotkeys.shift) {
@@ -624,148 +725,280 @@ export default {
           console.log("松开了shift键:", this.shiftKey);
         }
       });
+      hotkeys("ctrl+z", () => {
+        //撤销快捷键
+        this.back();
+      });
+      hotkeys("ctrl+y", () => {
+        //恢复快捷键
+        this.restore();
+      });
+      hotkeys("delete", () => {
+        //恢复快捷键
+        if (tarObj) {
+          this.canvas.remove(tarObj);
+          tarObj = null;
+        }
+      });
     },
     initDrawEvent(canvas) {
       let shape = fabric.Object | null;
       let startPoint = fabric.IPoint; // 记录初始坐标
       canvas
         .on("mouse:down", (e) => {
-          if (e.target || !drawType) {
-            // 如果绘画点击在图片上，则不进行绘画
-            return;
-          }
-          console.log("点击次数:drawType", this.count++, drawType);
-          if (!shape) {
-            // this.$refs.iconPaint.style.color = '#fff';
-            f.selection = false;
-            startPoint = e.absolutePointer;
-            switch (drawType) {
-              case "r":
-                shape = new fabric.Rect({
-                  //创建对应图形类型
-                  left: startPoint.x,
-                  top: startPoint.y,
-                  width: 0,
-                  height: 0,
-                  fill: undefined,
-                  stroke: "red",
-                });
-                break;
-              case "c":
-                {
-                  if (this.isDrawingCircle) {
-                    shape = new fabric.Circle({
-                      left: startPoint.x,
-                      top: startPoint.y,
-                      fill: "",
-                      stroke: "red",
-                    });
-                  } else {
-                    shape = new fabric.Ellipse({
-                      left: startPoint.x,
-                      top: startPoint.y,
-                      rx: 0,
-                      ry: 0,
-                      fill: undefined,
-                      stroke: "red",
-                    });
-                  }
-                }
-
-                break;
-              case "l":
-                shape = new fabric.Line(
-                  [startPoint.x, startPoint.y, startPoint.x, startPoint.y],
-                  {
+          if (canvasStatus === 3) {
+            if (e.target && e.target == tarObj) {
+              //落在画布内
+              return;
+            }
+            if (tarObj) {
+              tarObj.set({
+                selectable: false,
+                hasControls: false,
+                hoverCursor: "default",
+              });
+            }
+            // console.log("点击次数:drawType", this.count++, drawType);
+            if (!shape) {
+              f.selection = true;
+              startPoint = e.absolutePointer;
+              switch (drawType) {
+                case "r":
+                  shape = new fabric.Rect({
+                    //创建对应图形类型
+                    left: startPoint.x,
+                    top: startPoint.y,
+                    width: 0,
+                    height: 0,
                     fill: undefined,
-                    stroke: "red",
+                    stroke: this.colors,
+                    strokeWidth: this.paintWidth, // 边框宽度
+                  });
+                  break;
+                case "c":
+                  {
+                    if (this.isDrawingCircle) {
+                      shape = new fabric.Circle({
+                        left: startPoint.x,
+                        top: startPoint.y,
+                        fill: "",
+                        stroke: this.colors,
+                        strokeWidth: this.paintWidth, // 边框宽度
+                      });
+                    } else {
+                      shape = new fabric.Ellipse({
+                        left: startPoint.x,
+                        top: startPoint.y,
+                        rx: 0,
+                        ry: 0,
+                        fill: undefined,
+                        stroke: this.colors,
+                        strokeWidth: this.paintWidth, // 边框宽度
+                      });
+                    }
                   }
-                );
-                break;
-              default:
-                break;
+
+                  break;
+                case "l":
+                  shape = new fabric.Line(
+                    [startPoint.x, startPoint.y, startPoint.x, startPoint.y],
+                    {
+                      fill: undefined,
+                      stroke: this.colors,
+                      strokeWidth: this.paintWidth, // 边框宽度
+                    }
+                  );
+                  break;
+                default:
+                  break;
+              }
+              if (shape) {
+                f.add(shape); //添加图形
+                f.requestRenderAll(); //刷新画布
+              }
             }
-            if (shape) {
-              f.add(shape); //添加图形
-              f.requestRenderAll(); //刷新画布
+            window.selected = e?.target; // 当点击选择到有可选图形时，会获得图形的数据。
+          } else if (canvasStatus == 4 || canvasStatus == 5) {
+            //画笔状态或者橡皮擦状态什么都不用做
+          } else {
+            if (canvasStatus === 1) {
+              if (e.target && e.target == tarObj) {
+                // console.log("落入对象内：", e.target)
+                return;
+              }
+              if (tarObj) {
+                // console.log("tarObj存在1");
+                tarObj.set({
+                  selectable: false,
+                  hasControls: false,
+                  hoverCursor: "default",
+                });
+              }
+
+              canvasStatus = 0;
+            } else if (canvasStatus === 0) {
+              console.log("将要框选");
+              canvasStatus = 2;
+              let pointer = canvas.getPointer(e.e, false);
+              rect = new fabric.Rect({
+                left: pointer.x,
+                top: pointer.y,
+                width: 0,
+                height: 0,
+                fill: "",
+                originX: pointer.x,
+                originY: pointer.y,
+              });
+              canvas.add(rect);
+              canvas.renderAll();
             }
           }
-          window.selected = e?.target; // 当点击选择到有可选图形时，会获得图形的数据。
         })
         .on("mouse:move", (e) => {
-          console.log("move this.isDrawingCircle:", this.isDrawingCircle);
-          if (drawType && shape) {
-            const p = f.getPointer(e.e) || {
-              x: 0,
-              y: 0,
-            };
-            const minX = Math.min(p.x, startPoint.x);
-            const minY = Math.min(p.y, startPoint.y);
-            let w = Math.abs(p.x - startPoint.x);
-            let h = Math.abs(p.y - startPoint.y);
-            switch (drawType) {
-              case "r":
-                shape.set({
-                  left: minX,
-                  top: minY,
-                  width: w,
-                  height: h,
-                });
-                break;
-              case "c":
-                {
-                  if (this.isDrawingCircle) {
-                    var radius = w / 2;
-                    shape.set({
-                      left: minX,
-                      top: minY,
-                      radius: radius,
-                    });
-                  } else {
-                    shape.set({
-                      left: minX,
-                      top: minY,
-                      rx: w / 2,
-                      ry: h / 2,
-                    });
+          // console.log("move this.isDrawingCircle:", this.isDrawingCircle);
+          if (canvasStatus === 3) {
+            if (drawType && shape) {
+              const p = f.getPointer(e.e) || {
+                x: 0,
+                y: 0,
+              };
+              const minX = Math.min(p.x, startPoint.x);
+              const minY = Math.min(p.y, startPoint.y);
+              let w = Math.abs(p.x - startPoint.x);
+              let h = Math.abs(p.y - startPoint.y);
+              switch (drawType) {
+                case "r":
+                  shape.set({
+                    left: minX,
+                    top: minY,
+                    width: w,
+                    height: h,
+                  });
+                  break;
+                case "c":
+                  {
+                    if (this.isDrawingCircle) {
+                      var radius = w / 2;
+                      shape.set({
+                        left: minX,
+                        top: minY,
+                        radius: radius,
+                      });
+                    } else {
+                      shape.set({
+                        left: minX,
+                        top: minY,
+                        rx: w / 2,
+                        ry: h / 2,
+                      });
+                    }
                   }
-                }
-                break;
-              case "l":
-                let x1 = startPoint.x;
-                let y1 = startPoint.y;
-                let x2 = p.x;
-                let y2 = p.y;
-                console.log(startPoint, p);
+                  break;
+                case "l":
+                  let x1 = startPoint.x;
+                  let y1 = startPoint.y;
+                  let x2 = p.x;
+                  let y2 = p.y;
+                  console.log(startPoint, p);
 
-                shape.set({
-                  x1,
-                  y1,
-                  x2,
-                  y2,
-                });
-                break;
-              default:
-                break;
+                  shape.set({
+                    x1,
+                    y1,
+                    x2,
+                    y2,
+                  });
+                  break;
+                default:
+                  break;
+              }
+              tarObj = shape;
+              this.shape = shape;
+              this.startPoint = startPoint;
+              f.requestRenderAll();
             }
-            this.shape = shape;
-            this.startPoint = startPoint;
-            f.requestRenderAll();
+          } else if (canvasStatus == 4 || canvasStatus == 5) {
+            //画笔状态或者橡皮擦状态什么都不用做
+          } else {
+            if (canvasStatus === 2) {
+              if (!rect) return;
+              let pointer = canvas.getPointer(e.e, false);
+              let rectLeft = rect.left,
+                rectTop = rect.top;
+              rect.set({
+                left: Math.min(pointer.x, rectLeft),
+                top: Math.min(pointer.y, rectTop),
+                width: Math.abs(pointer.x - rect.originX),
+                height: Math.abs(pointer.y - rect.originY),
+              });
+            }
           }
         })
         .on("mouse:up", (e) => {
-          if (drawType && shape) {
-            shape.setCoords(); // 更新图像坐标；
-            // drawType = null
-            f.selection = true;
-            shape = null;
-            f.requestRenderAll();
+          if (canvasStatus === 3) {
+            if (drawType && shape) {
+              shape.setCoords(); // 更新图像坐标；
+              // drawType = null
+              f.selection = true;
+              shape = null;
+              f.requestRenderAll();
+            }
+          } else if (canvasStatus == 4 || canvasStatus == 5) {
+            //画笔状态或者橡皮擦状态什么都不用做
+          } else {
+            if (canvasStatus === 2) {
+              if (!rect || rect.width === 0 || rect.height === 0) {
+                canvasStatus = 0;
+                return;
+              }
+              const leftVal = rect.left,
+                topVal = rect.top,
+                width = rect.width,
+                height = rect.height;
+              let imgUrl = canvas.toDataURL({
+                left: leftVal,
+                top: topVal,
+                width: width,
+                height: height,
+              });
+              fabric.Image.fromURL(imgUrl, function (img) {
+                canvas.remove(rect);
+                img.set({
+                  left: leftVal,
+                  top: topVal,
+                  hasControls: true,
+                  selectable: true,
+                });
+                let blankRect = new fabric.Rect({
+                  left: leftVal,
+                  top: topVal,
+                  width: width,
+                  height: height,
+                  fill: "white",
+                  hasControls: false,
+                  selectable: false,
+                  hoverCursor: "default",
+                });
+                canvas.add(blankRect);
+                canvasStatus = 1;
+                canvas.add(img);
+                canvas.setActiveObject(img);
+                tarObj = img;
+                // console.log("执行了clearRect:", leftVal, topVal, width, height)
+                rect = null;
+
+                canvas.renderAll();
+              });
+            }
           }
         });
     }, // 撤销
     back() {
       if (this.canvas._objects.length > 0) {
         console.log("执行撤销操作:", this.canvas._objects);
+        if (tarObj) {
+          this.canvas.remove(tarObj);
+        }
+        canvasStatus = 0;
         this.delList.push(this.canvas._objects.pop());
         this.canvas.renderAll();
       }
@@ -781,23 +1014,46 @@ export default {
     },
     //上传图片
     handleBeforeUpload(file) {
-      const reader = new FileReader();
-      reader.readAsDataURL(file); // 读取文件为Base64
-      reader.onload = (e) => {
-        // console.log("图片的Base64编码：", e.target.result);
-        // 这里可以执行其他逻辑，比如将Base64存储起来或者上传到服务器
-        const imageUrl = e.target.result;
-        fabric.Image.fromURL(imageUrl, (img) => {
-          img.set({
-            left: 100,
-            top: 100,
-            // width: 300,
-            // height: 300,
+      console.log("上传图片:", file);
+      const isJPG = file.type === "image/jpeg";
+      console.log("上传图片isJPG:", isJPG);
+      if (!isJPG) {
+        this.$message.error("上传头像图片只能是 JPG 格式!");
+      } else {
+        const reader = new FileReader();
+        reader.readAsDataURL(file); // 读取文件为Base64
+        reader.onload = (e) => {
+          // console.log("图片的Base64编码：", e.target.result);
+          // 这里可以执行其他逻辑，比如将Base64存储起来或者上传到服务器
+          // console.log("上传图片大小:", reader, e);
+          const imageUrl = e.target.result;
+          f.selection = true;
+          fabric.Image.fromURL(imageUrl, (img) => {
+            console.log("上传图片imageUrl:", img);
+            img.set({
+              left: 100,
+              top: 100,
+            });
+            var canvasWidth = this.canvas.getWidth();
+            var canvasHeight = this.canvas.getHeight();
+            if (img.width > canvasWidth || img.height > canvasHeight) {
+              // 计算缩放比例，使图片适合画布的80%大小
+              var scaleX = (canvasWidth * 0.8) / img.width;
+              var scaleY = (canvasHeight * 0.8) / img.height;
+              var scale = scaleX < scaleY ? scaleX : scaleY; // 取宽度和高度的最小值
+              img.scale(scale);
+            }
+            tarObj = img;
+            this.canvas.add(img);
+            this.canvas.centerObject(img);
+            this.canvas.setActiveObject(img);
+            // img.setCoords(); // 更新图像坐标；
+            // tarDrawObj = img;
+
+            canvasStatus = 1; //将canvasStatus设为正在平移、缩放、旋转一个物体
           });
-          this.canvas.add(img);
-          this.canvas.centerObject(img);
-        });
-      };
+        };
+      }
       return false; // 阻止默认上传行为
     },
     convertURLToBase64(url) {
@@ -830,9 +1086,6 @@ export default {
         } 个文件`
       );
     },
-    // beforeRemove(file, fileList) {
-    //   return this.$confirm(`确定移除 ${ file.name }？`);
-    // },
     //保存画布
     save() {
       console.log("调用了下载画布方法");
@@ -846,9 +1099,11 @@ export default {
       a.click();
     },
     generateScheme() {
+      //点击生成方案按钮
       this.isDuringGeneration = true; //方案生成中将其置为true
       this.saveProjectObj.id = this.detail.id;
-      this.saveProjectObj.name = this.detail.name;
+      // this.saveProjectObj.name = this.detail.name;
+      this.saveProjectObj.name = this.$store.state.projectNameState;
       this.saveProjectObj.aiRate = this.percentage / 100;
       this.saveProjectObj.style = this.detail.style;
       this.saveProjectObj.style = this.styleValue;
@@ -856,6 +1111,7 @@ export default {
       //   this.saveProjectObj.prompt = this.detail.prompt;
       // else
       this.saveProjectObj.prompt = this.promptStr.split(",");
+      if (this.durationValue) this.saveProjectObj.randomSeed = this.detail.id;
       if (this.canvas._objects.length == 0)
         this.saveProjectObj.modified = false;
       else this.saveProjectObj.modified = true;
@@ -892,6 +1148,89 @@ export default {
               (response) => {
                 console.log("上传文件 请求成功了", response);
                 this.getFileFinish(projectId, fileId); //调用文件上传通知接口
+              },
+              (error) => {
+                console.log("上传文件 请求失败了", error);
+              }
+            );
+          }
+        },
+        (error) => {
+          console.log("保存项目 请求失败了", error);
+        }
+      );
+    },
+    getProjectSave() {
+      //退出页面时保存项目详情
+      this.isDuringGeneration = true; //方案生成中将其置为true
+      this.saveProjectObj.id = this.detail.id;
+      // this.saveProjectObj.name = this.detail.name;
+      this.saveProjectObj.name = this.$store.state.projectNameState;
+      console.log(
+        "getProjectSave projectNameState:",
+        this.$store.state.projectNameState
+      );
+      this.saveProjectObj.aiRate = this.percentage / 100;
+      this.saveProjectObj.style = this.detail.style;
+      this.saveProjectObj.style = this.styleValue;
+      // if(Array.isArray(this.detail.prompt))
+      //   this.saveProjectObj.prompt = this.detail.prompt;
+      // else
+      this.saveProjectObj.prompt = this.promptStr.split(",");
+      if (this.durationValue) this.saveProjectObj.randomSeed = this.detail.id;
+      if (this.canvas._objects.length == 0)
+        this.saveProjectObj.modified = false;
+      else this.saveProjectObj.modified = true;
+      console.log(
+        "prompt getProjectSave:",
+        this.detail.prompt,
+        "percentage:",
+        this.percentage,
+        "this.saveProjectObj:",
+        this.saveProjectObj
+      );
+      console.log("this.canvas._object:", this.canvas._objects.length);
+
+      projectSave(this.saveProjectObj).then(
+        async (response) => {
+          console.log("保存项目 请求成功了", response);
+          const projectId = response.data.id;
+          console.log("projecSave modified:", this.saveProjectObj.modified);
+          if (this.saveProjectObj.modified == true) {
+            const dataURL = this.canvas.toDataURL({
+              format: "png", // 指定输出格式，这里是PNG
+              quality: 1.0, // 图片质量，范围从0到1
+            });
+            const blobObj = this.base64ToBlob({
+              b64data: dataURL,
+              contentType: "image/png",
+            });
+            const url = response.data.uploadParams[0].hostUrl;
+            const fileId = response.data.uploadParams[0].fileId;
+            console.log("dataURL:", blobObj);
+            uploadFile(url, blobObj).then(
+              (response) => {
+                console.log("上传文件 请求成功了", response);
+                fileFinish({
+                  //调用文件上传通知接口
+                  projectId: projectId,
+                  fileId: fileId,
+                  finish: true,
+                }).then(
+                  async (response) => {
+                    console.log("文件上传完成通告 请求成功了", response);
+                    if (response.data.status == true) {
+                      // const tid = await this.getTaskGenerate(projectId);
+                      // this.tid = tid; //调用发起生成任务接口
+                      // console.log("async tid");
+                      // this.setTimer(tid);
+                      console.log("文件保存成功");
+                    } else console.log("文件保存失败");
+                  },
+                  (error) => {
+                    console.log("文件上传完成通告 请求失败了", error);
+                  }
+                );
               },
               (error) => {
                 console.log("上传文件 请求失败了", error);
@@ -1064,7 +1403,17 @@ export default {
     },
     cancelGeneration() {
       //取消生成任务
-      this.isConfirm = false; //返回原来的画布
+      fileRelease({ projectId: this.detail.id }).then(
+        (response) => {
+          console.log("取消生成结果接口成功:", response);
+          this.isConfirm = false; //返回原来的画布
+          this.getHistoryLists();
+        },
+        (error) => {
+          console.log("取消生成结果接口失败:", error);
+        }
+      );
+
       // this.convertURLToBase64(this.detail.canvas.link);//返回原来的画布
     },
     getDuringGeneration() {
@@ -1135,18 +1484,34 @@ export default {
     selectAlphaDefaultRect() {
       //点击选中默认形状 矩形
       drawType = "r";
+      canvasStatus = 3; //设为形状绘画状态
+      this.canvas.isDrawingMode = 0; //关闭自由绘画功能和橡皮擦功能
+      console.log("selectAlphaDefaultRect drawType:", drawType);
     },
     cancelAllOperations() {
       //取消所有操作 进行选中操作
       drawType = ""; //取消形状绘画
       this.canvas.isDrawingMode = 0; //关闭自由绘画功能和橡皮擦功能
+      canvasStatus = 0; //设置可以选状态
+    },
+    zoomHistoryImg(link) {
+      //放大历史图片
+      this.isZoomImg = true;
+      this.$refs.zoomImg.src = link;
+    },
+    closeZoomImg() {
+      //关闭放大历史图片
+      this.isZoomImg = false;
     },
   },
   computed: {},
   watch: {
     alphaValue(newVal, oldVal) {
       drawType = newVal;
-      if (drawType != "") this.canvas.isDrawingMode = 0; //关闭自由绘画功能和橡皮擦功能
+      if (drawType != "") {
+        canvasStatus = 3; //画笔状态
+        this.canvas.isDrawingMode = 0; //关闭自由绘画功能和橡皮擦功能
+      }
       // this.$refs.iconPaint.style.color = '#fff';
       console.log(
         "关闭自由绘画功能和橡皮擦功能 this.canvas.isDrawingMode",
@@ -1165,19 +1530,23 @@ export default {
       this.isAmongGeneration = this.getDuringGeneration();
       console.log("this.isAmongGeneration:", this.isAmongGeneration);
     },
+    paintWidth(newVal, oldVal) {
+      if (this.canvas.isDrawingMode)
+        this.canvas.freeDrawingBrush.width = newVal;
+    },
   },
 };
 </script>
 
 <style lang="scss" scoped>
-@import "../assets/style.css";
+// @import "../assets/style.css";
 
-.icon-icon-paint {
-  width: 24px;
-  height: 24px;
-  color: #d34da2;
-  font-size: 21px;
-}
+// .icon-icon-paint {
+//   width: 24px;
+//   height: 24px;
+//   color: #d34da2;
+//   font-size: 21px;
+// }
 
 .twoDtothreeD-container {
   width: 100%;
@@ -1315,6 +1684,9 @@ export default {
             line-height: 48px;
             z-index: 998;
             margin-left: 8px;
+            /deep/.el-popover--plain {
+              padding: 18px 20px 10px !important;
+            }
 
             .color-picker {
               margin: 0;
@@ -1582,10 +1954,31 @@ export default {
       cursor: pointer;
     }
   }
-
+  .history-img-zoom {
+    position: absolute;
+    z-index: 2013;
+    width: 1552px;
+    height: 996px;
+    background: rgba(217, 217, 217, 0.85);
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    .img-icon-container {
+      position: absolute;
+      padding: 24px;
+      .el-icon-circle-close {
+        font-size: 24px;
+        color: #2400ff;
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        cursor: pointer;
+      }
+    }
+  }
   .result-img-container {
     position: absolute;
-    z-index: 2012;
+    z-index: 2001;
     width: 1552px;
     height: 996px;
     display: inline-flex;
@@ -1603,6 +1996,7 @@ export default {
     display: inline-block;
     width: 368px;
     height: 996px;
+    border-left: 1px solid #3d3d3d;
 
     .prompt {
       height: 158px;
@@ -1711,13 +2105,44 @@ export default {
         }
       }
     }
-
+    .style-duration {
+      padding: 15px 16px;
+      border-bottom: 1px solid #3d3d3d;
+      font-family: AliMedium;
+      font-size: 14px;
+      .duration-content {
+        display: flex;
+        justify-content: space-between;
+        .duration-switch:hover {
+          box-shadow: 0 0px 20px 0px rgba(236, 236, 236, 0.4);
+        }
+        /deep/.el-switch__core {
+          width: 53px !important;
+          height: 26px;
+          border-radius: 13px;
+          &:after {
+            top: 2px;
+            left: 2px;
+            width: 21px;
+            height: 21px;
+          }
+        }
+        /deep/.el-switch.is-checked .el-switch__core::after {
+          margin-left: 26px;
+          &:after {
+            left: 100%;
+          }
+        }
+      }
+    }
     .history-record {
       padding: 16px 16px 24px 16px;
+      font-family: AliMedium;
+      font-size: 14px;
 
       .history-images {
         width: 320px; //336px-9px-7px
-        height: 324px; //351px-8px-19px
+        height: 154px; //351px-8px-19px
         margin-top: 8px;
         border-radius: 8px;
         background-color: #242425;
@@ -1792,6 +2217,7 @@ export default {
       display: flex;
       align-items: center; /* 垂直居中 */
       justify-content: center;
+      margin-top: 120px;
 
       .el-button {
         width: 336px;
@@ -1802,6 +2228,9 @@ export default {
         color: #fff;
         font-size: 20px;
         font-family: AliMedium;
+      }
+      .generation-scheme-btn:hover {
+        box-shadow: 0 8px 20px 0px rgba(236, 236, 236, 0.2);
       }
     }
   }

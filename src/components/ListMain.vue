@@ -5,6 +5,7 @@
         class="list"
         v-if="item.status == 'RUNNING'"
         @click="jumpPage(item.type, item.id, item.name)"
+        style="cursor: pointer"
       >
         <div class="status-running">
           <el-progress
@@ -34,8 +35,14 @@
           </div>
         </div>
       </div>
-      <div class="list" v-else @click="jumpPage(item.type, item.id, item.name)">
-        <img :src="item.previewLink" alt="" class="list-image" />
+      <div class="list" v-else>
+        <img
+          :src="item.previewLink"
+          alt=""
+          class="list-image"
+          @click="jumpPage(item.type, item.id, item.name)"
+          style="cursor: pointer"
+        />
         <div class="text-container">
           <div class="text-content">
             <span class="text-common project-name"
@@ -45,7 +52,7 @@
               >编辑于 {{ modifyTime(item.modifyTime) }}以前</span
             >
           </div>
-          <div class="icon-more">
+          <div class="icon-more" style="cursor: pointer">
             <i class="el-icon-more" style="transform: rotate(90deg)"></i>
           </div>
         </div>
@@ -436,6 +443,8 @@ export default {
       }
 
       .icon-more {
+        display: flex;
+        align-items: center;
         color: #fff;
         font-size: 24px;
         text-align: center;

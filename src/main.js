@@ -5,7 +5,9 @@ import App from './App.vue';
 //引入VueRouter
 import VueRouter from 'vue-router';
 //引入路由器
-import router from './router'
+import router from './router';
+//引入store
+import store from './store'
 //引入fabric
 import { fabric } from 'fabric';
 
@@ -23,4 +25,5 @@ new Vue({
         Vue.prototype.$bus = this; //全局事件总线
     },
     router,
+    store,
 }).$mount('#app')

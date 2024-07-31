@@ -189,3 +189,29 @@ export function fileOverwrite(param) {
         params: param,
     });
 }
+
+/**
+ * 取消本次生成结果
+ * @param params 要传的参数值 是params参数而不是body参数
+ * @returns 返回接口数据
+ */
+export function fileRelease(params) {
+    return request({
+        url: '/aigid/v1/project/file/release',
+        method: 'post',
+        params: params,
+    });
+}
+
+/**
+ * 删除项目
+ * @param params 要传的参数值 是body参数而不是params参数
+ * @returns 返回接口数据
+ */
+export function projectDelete(params) {
+    return request({
+        url: '/aigid/v1/project/del',
+        method: 'delete',
+        data: params,
+    });
+}

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Fabric Test Website</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.5.0/fabric.min.js"></script>
+
+
+    <style>
+        .canvas-container {}
+        
+        #my-canvas {
+            position: absolute;
+            background-color: ghostwhite;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="canvas-container">
+        <input type="file" id="file" />
+
+        <canvas id="my-canvas" width="1024" height="1024"></canvas>
+    </div>
+    <script>
+        // 缩放控制框和图片本体之间的距离
+        fabric.Object.prototype.padding = 5
+            // 缩放控制线颜色
+        fabric.Object.prototype.borderColor = '#dc143c';
+        // 控制点形状 rect 或 circle
+        // 单独调这里不起作用
+        fabric.Object.prototype.cornerStyle = "circle";
+        // 控制点颜色
+        fabric.Object.prototype.cornerColor = "white";
+        // 控制点大小
+        fabric.Object.prototype.cornerSize = 8;
+        // 控制点不透明
+        fabric.Object.prototype.transparentCorners = false;
+        // 旋转控制点的指针样式
+        fabric.Object.prototype.controls.mtr.cursorStyle = "grab";
+
+        const canvas = new fabric.Canvas('my-canvas');
+
+        // 0 没有选中
+        // 1 正在平移、缩放、旋转一个物体
+        // 2 正在框选区域
+        // 3 画图
+        let canvasStatus = 0;
+
+        let tarObj;
+        let rect = null;
+        fabric.Image.fromURL("./assets/HistoryImg.png", (img) => {
+            img.set({
+                left: 100,
+                top: 100
+            });
+            img.scale(5);
+            img.set({
+                hasControls: true,
+                cornerStyle: "circle",
+                selectable: true
+            })
+            canvas.add(img);
+            canvas.setActiveObject(img)
+            canvasStatus = 1;
+            tarObj = img;
+        })
+
+        canvas.on("mouse:down", function(e) {
+            if (canvasStatus === 1) {
+                if (e.target && e.target === tarObj) {
+                    return;
+                }
+                tarObj.set({
+                    selectable: false,
+                    hasControls: false,
+                    hoverCursor: 'default'
+                })
+                canvasStatus = 0;
+            } else if (canvasStatus === 0) {
+                canvasStatus = 2;
+                let pointer = canvas.getPointer(e.e, false);
+                rect = new fabric.Rect({
+                    left: pointer.x,
+                    top: pointer.y,
+                    width: 0,
+                    height: 0,
+                    fill: 'black',
+                    originX: pointer.x,
+                    originY: pointer.y
+                });
+                canvas.add(rect)
+                canvas.renderAll()
+            }
+        })
+        canvas.on("mouse:move", function(o) {
+            if (canvasStatus === 2) {
+                if (!rect) return;
+                let pointer = canvas.getPointer(o.e, false)
+                let rectLeft = rect.left,
+                    rectTop = rect.top;
+                rect.set({
+                    left: Math.min(pointer.x, rectLeft),
+                    top: Math.min(pointer.y, rectTop),
+                    width: Math.abs(pointer.x - rect.originX),
+                    height: Math.abs(pointer.y - rect.originY),
+                });
+            }
+        });
+        canvas.on("mouse:up", function(o) {
+            if (canvasStatus === 2) {
+                if (!rect || rect.width === 0 || rect.height === 0) {
+                    canvasStatus = 0;
+                    return;
+                }
+                const leftVal = rect.left,
+                    topVal = rect.top,
+                    width = rect.width,
+                    height = rect.height;
+                let imgUrl = canvas.toDataURL({
+                    left: leftVal,
+                    top: topVal,
+                    width: width,
+                    height: height
+                })
+                fabric.Image.fromURL(imgUrl, function(img) {
+                    canvas.remove(rect)
+                    img.set({
+                        left: leftVal,
+                        top: topVal,
+                        hasControls: true,
+                        selectable: true
+                    })
+                    let blankRect = new fabric.Rect({
+                        left: leftVal,
+                        top: topVal,
+                        width: width,
+                        height: height,
+                        fill: 'white',
+                        hasControls: false,
+                        selectable: false,
+                        hoverCursor: 'default'
+                    })
+                    canvas.add(blankRect)
+                    canvasStatus = 1;
+                    canvas.add(img)
+                    canvas.setActiveObject(img)
+                    tarObj = img;
+                    rect = null;
+                    canvas.renderAll()
+                })
+            }
+        });
+    </script>
+</body>
+
+</html>
