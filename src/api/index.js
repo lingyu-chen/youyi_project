@@ -5,10 +5,11 @@ import request from '@/utils/request.js';
  * @param params 要传的参数值
  * @returns 返回接口数据
  */
-export function getProjectLists(type) {
+export function getProjectLists(param) {
     return request({
-        url: '/aigid/v1/project/list?type=' + type,
-        method: 'get'
+        url: '/aigid/v1/project/list',
+        method: 'get',
+        params: param,
     })
 }
 

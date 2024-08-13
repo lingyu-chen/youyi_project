@@ -1,8 +1,9 @@
 <template>
-  <div class="AIRende-contaniner">
+  <div class="AIRender-container">
     <el-menu
       :default-active="activeIndex2"
       class="el-menu-demo"
+      ref="menuHeight"
       mode="horizontal"
       @select="handleSelect"
       text-color="#535353"
@@ -46,7 +47,7 @@
     </el-menu>
     <ListMain :typeValue="typeValue"></ListMain>
     <!-- 悬停渐变 -->
-    <div class="hover-gradient-low"></div>
+    <div class="hover-gradient-low" ref="hoverHeight"></div>
     <div class="hover-gradient">
       <div class="footer-navigation" @select="handleSelectFooter">
         <span
@@ -201,7 +202,7 @@ export default {
   },
   mounted() {
     //获取功能列表
-    setTimeout(() => {}, 6000); //等待6秒钟，在首页获得最新的（在详情页有修改，并在返回时保存）项目名称
+    setTimeout(() => {}, 8000); //等待6秒钟，在首页获得最新的（在详情页有修改，并在返回时保存）项目名称
     getFeatureLists().then(
       (response) => {
         this.features = response.data.features;
@@ -211,13 +212,23 @@ export default {
         console.log("请求失败了!", error);
       }
     );
+    this.$store.commit(
+      "GETMENUHEIGHT",
+      this.$refs.menuHeight.$el.offsetHeight +
+        this.$refs.menuHeight.$el.offsetTop
+    );
+    console.log(
+      "menu高度:",
+      this.$refs.menuHeight.$el.offsetHeight,
+      this.$refs.menuHeight.$el.offsetTop
+    );
   },
 };
 </script>
 
 <style lang="scss" scoped>
 .AIRender-container {
-  padding: 24px 20px;
+  padding: 0px 20px;
 }
 .el-menu-demo {
   display: inline-block;

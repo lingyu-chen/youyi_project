@@ -32,7 +32,7 @@
         </div>
       </el-header>
       <div class="line"></div>
-      <el-main>
+      <el-main ref="mainHeight">
         <router-view><Index></Index></router-view>
         <!-- <TwoDToThreeD></TwoDToThreeD> -->
       </el-main>
@@ -74,7 +74,8 @@ export default {
         console.log("请求失败了!", error);
       }
     );
-    console.log("home mounted:", this.$route.query);
+    this.$store.commit("GETMAINHEIGHT", this.$refs.mainHeight.$el.offsetHeight);
+    console.log("el-main height:", this.$refs.mainHeight.$el.offsetHeight);
   },
   computed: {
     projectName: {
@@ -134,14 +135,14 @@ export default {
   zoom: 1;
 }
 
-/* 隐藏浏览器自带的滚动条 */
-::-webkit-scrollbar {
-  width: 0 !important;
-}
-::-webkit-scrollbar {
-  width: 0 !important;
-  height: 0;
-}
+// /* 隐藏浏览器自带的滚动条 */
+// ::-webkit-scrollbar {
+//   width: 0 !important;
+// }
+// ::-webkit-scrollbar {
+//   width: 0 !important;
+//   height: 0;
+// }
 
 .el-header {
   position: relative;
@@ -228,6 +229,7 @@ export default {
   bottom: 0;
   width: 100%;
   padding: 0;
+  //overflow: hidden; /* 防止el-main出现滚动条 */
 }
 
 body > .el-container {

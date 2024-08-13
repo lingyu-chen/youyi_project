@@ -67,14 +67,14 @@ export default {
   zoom: 1;
 }
 
-/* 隐藏浏览器自带的滚动条 */
-::-webkit-scrollbar {
-  width: 0 !important;
-}
-::-webkit-scrollbar {
-  width: 0 !important;
-  height: 0;
-}
+// /* 隐藏浏览器自带的滚动条 */
+// ::-webkit-scrollbar {
+//   width: 0 !important;
+// }
+// ::-webkit-scrollbar {
+//   width: 0 !important;
+//   height: 0;
+// }
 
 // .el-header {
 //   position: relative;

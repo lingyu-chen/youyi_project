@@ -1,80 +1,74 @@
 <template>
-  <div class="row">
-    <div v-for="(item, index) in projectList" :key="index" class="project-list">
+  <div
+    class="row-scroll"
+    :style="{ height: 82 + 'vh' }"
+    ref="scrollBox"
+    @scroll="loadMore"
+  >
+    <div class="row">
       <div
-        class="list"
-        v-if="item.status == 'RUNNING'"
-        @click="jumpPage(item.type, item.id, item.name)"
-        style="cursor: pointer"
+        v-for="(item, index) in projectList"
+        :key="index"
+        class="project-list"
       >
-        <div class="status-running">
-          <el-progress
-            type="circle"
-            :percentage="getProgress(item.tasks)"
-            :stroke-width="8"
-            color="#fff"
-          ></el-progress>
-          <div class="project-name">{{ item.name }}</div>
-          <div class="time-remaining">
-            模型生成中，剩余时间大约还有
-            {{
-              dayjs
-                .duration(getLeftTime(item.tasks), "seconds")
-                .format("HH:mm:ss")
-            }}
-          </div>
-        </div>
-        <div class="text-container">
-          <div
-            class="text-content cancel-content"
-            @click.stop="listCancel(item.tasks, index)"
-          >
-            <span class="cancel-btn text-common project-name"
-              ><i class="el-icon-close"></i> 取消</span
-            >
-          </div>
-        </div>
-      </div>
-      <div class="list" v-else>
-        <img
-          :src="item.previewLink"
-          alt=""
-          class="list-image"
+        <div
+          class="list"
+          v-if="item.status == 'RUNNING'"
           @click="jumpPage(item.type, item.id, item.name)"
           style="cursor: pointer"
-        />
-        <div class="text-container">
-          <div class="text-content">
-            <span class="text-common project-name"
-              >{{ item.name }}{{ item.type }}</span
-            >
-            <span class="text-common edit-time"
-              >编辑于 {{ modifyTime(item.modifyTime) }}以前</span
-            >
+        >
+          <div class="status-running">
+            <el-progress
+              type="circle"
+              :percentage="getProgress(item.tasks)"
+              :stroke-width="8"
+              color="#fff"
+            ></el-progress>
+            <div class="project-name">{{ item.name }}</div>
+            <div class="time-remaining">
+              模型生成中，剩余时间大约还有
+              {{
+                dayjs
+                  .duration(getLeftTime(item.tasks), "seconds")
+                  .format("HH:mm:ss")
+              }}
+            </div>
           </div>
-          <div class="icon-more" style="cursor: pointer">
-            <i class="el-icon-more" style="transform: rotate(90deg)"></i>
+          <div class="text-container">
+            <div
+              class="text-content cancel-content"
+              @click.stop="listCancel(item.tasks, index)"
+            >
+              <span class="cancel-btn text-common project-name"
+                ><i class="el-icon-close"></i> 取消</span
+              >
+            </div>
+          </div>
+        </div>
+        <div class="list" v-else>
+          <img
+            :src="item.previewLink"
+            alt=""
+            class="list-image"
+            @click="jumpPage(item.type, item.id, item.name)"
+            style="cursor: pointer"
+          />
+          <div class="text-container">
+            <div class="text-content">
+              <span class="text-common project-name"
+                >{{ item.name }}{{ item.type }}</span
+              >
+              <span class="text-common edit-time"
+                >编辑于 {{ modifyTime(item.modifyTime) }}以前</span
+              >
+            </div>
+            <div class="icon-more" style="cursor: pointer">
+              <i class="el-icon-more" style="transform: rotate(90deg)"></i>
+            </div>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- <div class="project-list" @click="jumpPage('picgen')">
-      <div class="list" v-if="1 == 1">
-        <img src="../assets/图片11.png" alt="" class="list-image">
-        <div class="text-container">
-          <div class="text-content">
-            <span class="text-common project-name">项目名称 #1</span>
-            <span class="text-common edit-time">编辑于 1分钟 以前</span>
-          </div>
-          <div class="icon-more">
-            <i class="el-icon-more" style="transform: rotate(90deg);"></i>
-          </div>
-      
-        </div>
-      </div>
-      <div class="list" v-else></div>
-    </div> -->
   </div>
 </template>
 
@@ -94,14 +88,39 @@ export default {
       projectList: [],
       dayjs,
       leftTime: 0, //RUNNING状态下的剩余时间
+      currentPage: 1, //当前页面
+      pagesize: 20, //页面大小
+      lastPage: false, // 判断是否最后一页,如果最后一页就不再发送请求
+      rowScrollHeight: 0, //
     };
   },
   methods: {
+    loadMore() {
+      let scrollDom = this.$refs.scrollBox;
+      if (
+        scrollDom.clientHeight + scrollDom.scrollTop + 1 >=
+        scrollDom.scrollHeight
+      ) {
+        this.currentPage++; //页数加一
+        this.getProjectData(); //发送请求获取数据
+      }
+    },
+    getProjectData() {
+      if (!this.lastPage) {
+        //发送请求
+        this.getProjectsList();
+      }
+    },
     getProjectsList() {
-      getProjectLists("").then(
+      getProjectLists({ type: "", pagenum: this.currentPage }).then(
         (response) => {
           console.log("请求成功了!", response.data);
-          this.projectList = response.data.items;
+          // this.projectList = response.data.items;
+          this.projectList.push(...response.data.items);
+          if (response.data.items.length < this.pagesize) {
+            //一页总共36条数据，小于36条时，表示是最后一页了
+            this.lastPage = true;
+          }
           this.setTimer(); //定时器开启
           console.log("请求成功了this.projectList!", this.projectList);
         },
@@ -244,6 +263,14 @@ export default {
     //http://localhost:8080/api/aigid/v1/project/list
     console.log("列表页面");
     this.getProjectsList();
+    this.rowScrollHeight =
+      100 - (this.$store.state.menuHeight / this.$store.state.mainHeight) * 100;
+    console.log(
+      "滚动高度:",
+      this.rowScrollHeight,
+      this.$store.state.menuHeight,
+      this.$store.state.mainHeight
+    );
   },
   beforeDestroy() {
     // 清除定时器
@@ -256,7 +283,8 @@ export default {
   watch: {
     typeValue(newValue) {
       //console.log("typeValue:",newValue);
-      getProjectLists(newValue).then(
+      this.currentPage = 1;
+      getProjectLists({ type: newValue, pagenum: this.currentPage }).then(
         (response) => {
           console.log("请求成功了!", response.data);
           this.projectList = response.data.items;
@@ -269,7 +297,7 @@ export default {
     },
     leftTime(newVal, oldVal) {
       if (this.leftTime != 0) {
-        getProjectLists("").then(
+        getProjectLists({ type: "", pagenum: this.currentPage }).then(
           (response) => {
             console.log("请求成功了!", response.data);
             this.projectList = response.data.items;
@@ -307,7 +335,18 @@ export default {
 
 .row {
 }
-
+.row-scroll {
+  /* height: (100-) vh; 视口高度 */
+  overflow-y: auto;
+}
+/* 隐藏浏览器自带的滚动条 */
+.row-scroll::-webkit-scrollbar {
+  width: 0 !important;
+}
+.row-scroll::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0;
+}
 .project-list {
   display: inline-block;
   background-color: #242425;

@@ -29,16 +29,25 @@
           </div>
           <div class="line-right"></div>
           <div class="default-selected" @click="cancelAllOperations">
-            <div class="hover-selected">
+            <div
+              class="hover-selected"
+              :class="{
+                'hover-selected-selected': clickStatus == 0,
+              }"
+            >
               <img src="../assets/selected.png" alt="" class="mouse-selected" />
             </div>
           </div>
           <div class="line-right"></div>
           <div class="eraser-paint-graph">
-            <div class="color-selected">
+            <div
+              class="color-selected"
+              :class="{ 'color-selected-selected': colorPickerStatus == 1 }"
+            >
               <!-- <div class="color-picker"><span></span></div> -->
               <div style="display: inline-block; position: relative">
                 <el-popover
+                  @hide="handleBlur"
                   placement="bottom"
                   width="24px"
                   trigger="click"
@@ -47,6 +56,7 @@
                   <el-button
                     slot="reference"
                     class="color-box"
+                    @click="colorPickerStatus = 1"
                     :style="{
                       backgroundColor: colorPicker,
                       padding: '0px',
@@ -88,17 +98,31 @@
                 <!-- <span class="icon-icon-paint" style="marginRight: 16px;" ref="iconPaint"></span> -->
               </div>
             </div>
-            <div class="paint-selected">
+            <div
+              class="paint-selected"
+              :class="{
+                'hover-selected-selected': clickStatus == 1,
+              }"
+            >
               <img src="../assets/paint.png" alt="" @click="startPaint()" />
             </div>
-            <div class="paint-selected">
+            <div
+              class="paint-selected"
+              :class="{
+                'hover-selected-selected': clickStatus == 3,
+              }"
+            >
               <img src="../assets/eraser.png" alt="" @click="startEraser()" />
             </div>
             <!-- <div class="alpha-selected">
 						  <img src="../assets/alpha.png" alt="">
 						  <img src="../assets/selectAlpha.png" alt="">
 						</div> -->
-            <div class="alpha-selected" @click="selectAlphaDefaultRect">
+            <div
+              class="alpha-selected"
+              :class="{ 'alpha-selected-selected': clickStatus == 2 }"
+              @click="selectAlphaDefaultRect"
+            >
               <img
                 src="../assets/alpha.png"
                 alt=""
@@ -415,6 +439,11 @@ export default {
   },
   data() {
     return {
+      clickStatus: 0, // 0 框选状态
+      // 1 画笔状态
+      // 2 图形绘画状态
+      // 3 橡皮擦状态
+      colorPickerStatus: 0, // 0为关闭，1为打开
       textarea: "",
       percentage: 0, //AI影响率
       styleLists: [], //风格列表
@@ -632,6 +661,8 @@ export default {
       console.log("开启自由绘画");
       this.alphaValue = ""; //关闭形状绘画
       canvasStatus = 4; //画笔状态
+      this.clickStatus = 1; //设置画笔点击选中状态
+      console.log("canvasStatus=", canvasStatus);
       this.freeDraw();
     },
     freeDraw() {
@@ -667,12 +698,19 @@ export default {
       this.colorPicker = val.hex;
       this.colors = val.hex;
       this.canvas.freeDrawingBrush.color = this.colors;
+      console.log("this.colorPickerStatus=", this.colorPickerStatus);
       // this.$refs.iconPaint.style.color = this.colors;
+    },
+    //颜色选择器关闭事件
+    handleBlur() {
+      this.colorPickerStatus = 0;
+      // console.log("关闭popover:", this.colorPickerStatus);
     },
     //橡皮擦功能
     startEraser() {
       this.alphaValue = ""; //关闭形状绘画
       canvasStatus = 5; //设置为橡皮擦状态
+      this.clickStatus = 3; //设置橡皮擦为点击选中状态
       console.log("startEraser this.drawType:", this.drawType);
       if (this.canvas == null) {
         this.canvas = new fabric.Canvas("c");
@@ -1485,14 +1523,18 @@ export default {
       //点击选中默认形状 矩形
       drawType = "r";
       canvasStatus = 3; //设为形状绘画状态
+      this.clickStatus = 2; //设置形状绘画点击选中状态
       this.canvas.isDrawingMode = 0; //关闭自由绘画功能和橡皮擦功能
       console.log("selectAlphaDefaultRect drawType:", drawType);
     },
     cancelAllOperations() {
       //取消所有操作 进行选中操作
       drawType = ""; //取消形状绘画
+      this.alphaValue = ""; //同时清空形状绘画选择值
+      console.log("取消所有操作进行选中drawType=", drawType);
       this.canvas.isDrawingMode = 0; //关闭自由绘画功能和橡皮擦功能
       canvasStatus = 0; //设置可以选状态
+      this.clickStatus = 0; //设置框选点击样式状态
     },
     zoomHistoryImg(link) {
       //放大历史图片
@@ -1508,6 +1550,7 @@ export default {
   watch: {
     alphaValue(newVal, oldVal) {
       drawType = newVal;
+      console.log("alphaValue值改变drawType=", drawType);
       if (drawType != "") {
         canvasStatus = 3; //画笔状态
         this.canvas.isDrawingMode = 0; //关闭自由绘画功能和橡皮擦功能
@@ -1560,7 +1603,11 @@ export default {
     width: 1552px;
     height: 996px;
     background-color: #d4d4d4;
-
+    .hover-selected-selected {
+      //选中状态
+      background-color: #5034ff;
+      border-radius: 4px;
+    }
     .panel-white {
       // width: 1322px;
       // height: 734px;
@@ -1610,7 +1657,10 @@ export default {
         background-color: #212123;
         // margin: 91px 0 32px 0;
         border-radius: 32px;
-
+        img {
+          //将工具栏的指示样式改为pointer
+          cursor: pointer;
+        }
         .undo-redo {
           display: inline-flex;
           // padding: 8px 16px;
@@ -1652,7 +1702,6 @@ export default {
           background-color: #5034ff;
           border-radius: 4px;
         }
-
         .line-right {
           position: absolute;
           top: 0;
@@ -1737,7 +1786,7 @@ export default {
             }
           }
 
-          .color-selected:hover {
+          .color-selected-selected {
             box-sizing: border-box;
             border: 2px solid #5034ff;
             border-radius: 4px;
@@ -1765,7 +1814,11 @@ export default {
             position: relative;
           }
 
-          .alpha-selected:hover {
+          // .alpha-selected:hover {
+          //   background-color: #5034ff;
+          //   border-radius: 4px;
+          // }
+          .alpha-selected-selected {
             background-color: #5034ff;
             border-radius: 4px;
           }
@@ -2139,7 +2192,14 @@ export default {
       padding: 16px 16px 24px 16px;
       font-family: AliMedium;
       font-size: 14px;
-
+      /* 隐藏浏览器自带的滚动条 */
+      .history-images::-webkit-scrollbar {
+        width: 0 !important;
+      }
+      .history-images::-webkit-scrollbar {
+        width: 0 !important;
+        height: 0;
+      }
       .history-images {
         width: 320px; //336px-9px-7px
         height: 154px; //351px-8px-19px
