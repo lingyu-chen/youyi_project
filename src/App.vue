@@ -1,29 +1,10 @@
 <template>
-  <div id="app">
-    <!-- <img alt="Vue logo" src="./assets/logo.png"> -->
-    <!-- <HelloWorld msg="Welcome to Your Vue.js App"/> -->
-    <!-- <el-container>
-      <el-header height="84px">
-        <img src="./assets/优艺LOGO+白色标准字 1.png" alt="" class="logo">
-        <div class="username">
-          <img src="./assets/username.png" alt="">
-          <div class="username-container">
-            <div class="username-text">UserName</div>
-            <div class="mail-text">UserName@yongyi.com </div>
-          </div>
-          
-        </div>
-      </el-header>
-      <div class="line"></div>
-      <el-main>
-        <AIRender></AIRender>
-        <TwoDToThreeD></TwoDToThreeD> 
-      </el-main>     
-    </el-container> -->
-    <router-view>
-      <!-- <Home></Home> -->
-    </router-view>
-  </div>
+	<div id="app">
+
+		<router-view>
+			<!-- <Home></Home> -->
+		</router-view>
+	</div>
 </template>
 
 <script>
@@ -31,40 +12,42 @@ import Home from "./components/Home.vue";
 // import HelloWorld from './components/HelloWorld.vue'
 import Index from "./components/Index.vue";
 import TwoDGeneration from "./components/TwoDGeneration.vue";
-
-import axios from "axios";
+import AIRender from "./components/AIRender.vue";
 
 export default {
-  name: "App",
-  components: {
-    // HelloWorld
-    Index,
-    TwoDGeneration,
-    Home,
-  },
-  data() {
-    return {};
-  },
-  methods: {},
+	name: "App",
+	components: {
+		// HelloWorld
+		Index,
+		TwoDGeneration,
+		Home,
+		AIRender
+	},
+	data() {
+		return {};
+	},
+	methods: {},
 };
 </script>
 
 <style lang="scss">
 * {
-  /* CSS Reset */
-  margin: 0;
-  padding: 0;
+	/* CSS Reset */
+	margin: 0;
+	padding: 0;
 }
+
 .clear:after {
-  content: "";
-  display: block;
-  clear: both;
-  height: 0;
-  overflow: hidden;
-  visibility: hidden;
+	content: "";
+	display: block;
+	clear: both;
+	height: 0;
+	overflow: hidden;
+	visibility: hidden;
 }
+
 .clear {
-  zoom: 1;
+	zoom: 1;
 }
 
 // /* 隐藏浏览器自带的滚动条 */
@@ -158,16 +141,18 @@ export default {
 //   top: 11px;
 // }
 @font-face {
-  font-family: AliMedium;
-  src: url("./assets/font/AlibabaPuHuiTi-2-65-Medium.ttf");
+	font-family: AliMedium;
+	src: url("./assets/font/AlibabaPuHuiTi-2-65-Medium.ttf");
 }
+
 @font-face {
-  font-family: AliRegular;
-  src: url("./assets/font/AlibabaPuHuiTi-2-55-Regular.ttf");
+	font-family: AliRegular;
+	src: url("./assets/font/AlibabaPuHuiTi-2-55-Regular.ttf");
 }
+
 @font-face {
-  font-family: AliBold;
-  src: url("./assets/font/AlibabaPuHuiTi-2-85-Bold.ttf");
+	font-family: AliBold;
+	src: url("./assets/font/AlibabaPuHuiTi-2-85-Bold.ttf");
 }
 
 // #app {
