@@ -44,7 +44,7 @@
 </template>
 <script>
 import * as THREE from 'three';
-import {GLTFLoader} from "three/addons";
+import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 
 const loader = new GLTFLoader();
 const scene = new THREE.Scene();
@@ -53,6 +53,7 @@ const models = [];
 const pointLight = new THREE.PointLight(0xFFFFFF, 500, 100);
 const ambientLight = new THREE.AmbientLight(0xFFFFFF, 500);
 const gridHelper = new THREE.GridHelper(30, 30);
+const renderer = new THREE.WebGLRenderer();
 export default {
 	name: "AIRender",
 	data: function () {
@@ -65,14 +66,14 @@ export default {
 	},
 	mounted: function () {
 		loader.load('../assets/models3d/chair_full_demo.glb', function (glb) {
-			scene.add(camera);
 			const loadedModel = glb.scene;
 			models.push(loadedModel);
-			scene.add(models);
+			scene.add(loadedModel);
 			pointLight.position.set(0, 10, 0);
 			scene.add(pointLight);
 			scene.add(ambientLight);
 			scene.add(gridHelper)
+			renderer.render(scene, camera);
 		})
 	}
 }
