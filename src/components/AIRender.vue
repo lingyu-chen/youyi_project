@@ -20,18 +20,60 @@
 				class="style-list-select">
 			</el-select>
 			<div class="separator"></div>
+			<h1 class="option-title">参考图片</h1>
+			<div class="rel-pic-container">
+				<img src="../assets/upload.png" alt="">
+				<label>点击/拖拽 来上传图片（jpeg，png）</label>
+			</div>
+			<div class="separator"></div>
+			<div class="keep-style-container">
+				<h1 class="option-title">风格延续</h1>
+				<el-switch class="keep-style-switch" v-model="keepStyle" active-color="#00A700"
+				           inactive-color="#577899"></el-switch>
+			</div>
+			<div class="separator"></div>
+			<h1 class="option-title">历史记录</h1>
+			<div class="history-list-container">
 
+			</div>
+			<button class="generate-but" :class="{'generate-but-generating':isGenerating}">AI
+				生成方案{{ isGenerating ? "..." : "" }}
+			</button>
 		</div>
 	</div>
 </template>
 <script>
+import * as THREE from 'three';
+import {GLTFLoader} from "three/addons";
+
+const loader = new GLTFLoader();
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const models = [];
+const pointLight = new THREE.PointLight(0xFFFFFF, 500, 100);
+const ambientLight = new THREE.AmbientLight(0xFFFFFF, 500);
+const gridHelper = new THREE.GridHelper(30, 30);
 export default {
 	name: "AIRender",
 	data: function () {
 		return {
-			aiRate: 20,
-			content: "hello"
+			aiRate: 90,
+			content: "hello",
+			keepStyle: false,
+			isGenerating: false
 		}
+	},
+	mounted: function () {
+		loader.load('../assets/models3d/chair_full_demo.glb', function (glb) {
+			scene.add(camera);
+			const loadedModel = glb.scene;
+			models.push(loadedModel);
+			scene.add(models);
+			pointLight.position.set(0, 10, 0);
+			scene.add(pointLight);
+			scene.add(ambientLight);
+			scene.add(gridHelper)
+		})
 	}
 }
 </script>
@@ -57,7 +99,8 @@ export default {
 }
 
 .option-title {
-	font-family: AliMedium,serif;
+	font-family: AliMedium, serif;
+	font-weight: normal;
 	font-size: 14px;
 	color: white;
 	margin-top: 16px;
@@ -65,6 +108,7 @@ export default {
 
 .prompt-input {
 	box-sizing: border-box;
+	font-family: AliRegular, serif;
 	width: 100%;
 	height: 131px;
 	padding: 10px 12px;
@@ -150,5 +194,82 @@ export default {
 .style-list-select {
 	margin-top: 16px;
 	width: 100%;
+}
+
+.rel-pic-container {
+	margin-top: 8px;
+	box-sizing: border-box;
+	border: 0;
+	border-radius: 8px;
+	background-color: #242425;
+	height: 64px;
+	text-align: center;
+	line-height: 64px;
+}
+
+.rel-pic-container > img {
+	width: 16px;
+	height: 16px;
+	margin-right: 10px;
+	vertical-align: middle;
+}
+
+.rel-pic-container > label {
+	font-family: AliRegular, serif;
+	font-size: 12px;
+	color: #b2b2b2;
+	vertical-align: middle;
+}
+
+.rel-pic-container:hover {
+	cursor: pointer;
+}
+
+.keep-style-container {
+	position: relative;
+}
+
+.keep-style-switch {
+	position: absolute;
+	width: 53px;
+	height: 26px;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	margin: auto;
+}
+
+.history-list-container {
+	height: 178px;
+	background-color: #242425;
+	border: 0;
+	border-radius: 8px;
+	margin-top: 8px;
+}
+
+.generate-but {
+	margin-top: 147px;
+	font-family: AliMedium, serif;
+	font-size: 20px;
+	color: white;
+	height: 48px;
+	background-color: #2400ff;
+	border: 0;
+	width: 100%;
+	cursor: pointer;
+	border-radius: 8px;
+	-webkit-transition-duration: 0.4s;
+	transition-duration: 0.4s;
+}
+
+.generate-but:hover {
+	box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 8%), 0 4px 8px 0 rgba(0, 0, 0, 8%);
+
+}
+
+.generate-but-generating, .generate-but-generating:hover {
+	box-shadow: none;
+	cursor: not-allowed;
+	background-color: #412cbe;
 }
 </style>
