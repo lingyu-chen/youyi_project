@@ -1,5 +1,8 @@
 <template>
 	<div class="container">
+		<div class="left-container" ref="threeContainer">
+
+		</div>
 		<div class="right-container">
 			<h1 class="option-title">Prompt 提示词</h1>
 			<textarea class="prompt-input"></textarea>
@@ -65,7 +68,7 @@ export default {
 		}
 	},
 	mounted: function () {
-		loader.load('../assets/models3d/chair_full_demo.glb', function (glb) {
+		loader.load('@/assets/models3d/chair_full_demo.glb', function (glb) {
 			const loadedModel = glb.scene;
 			models.push(loadedModel);
 			scene.add(loadedModel);
@@ -73,7 +76,9 @@ export default {
 			scene.add(pointLight);
 			scene.add(ambientLight);
 			scene.add(gridHelper)
+			this.$refs.threeContainer.appendChild(renderer.domElement);
 			renderer.render(scene, camera);
+
 		})
 	}
 }
@@ -86,6 +91,16 @@ export default {
 	background-color: #d4d4d4;
 	width: 100%;
 	height: 100%;
+}
+
+.left-container {
+	position: absolute;
+	left: 0;
+	right: 336px;
+	top: 0;
+	bottom: 0;
+	margin: auto;
+	background-color: transparent;
 }
 
 .right-container {
