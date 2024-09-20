@@ -1,7 +1,9 @@
 <template>
+
 	<div class="container">
 		<div class="left-container" ref="threeContainer">
-
+			<div class="tool-box-container">
+			</div>
 		</div>
 		<div class="right-container">
 			<h1 class="option-title">Prompt 提示词</h1>
@@ -20,6 +22,7 @@
 				placeholder="请选择"
 				style="color: #ff0000"
 				:popper-append-to-body="false"
+				:value="styleList"
 				class="style-list-select">
 			</el-select>
 			<div class="separator"></div>
@@ -48,37 +51,61 @@
 <script>
 import * as THREE from 'three';
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
+import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
 
 const loader = new GLTFLoader();
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const models = [];
 const pointLight = new THREE.PointLight(0xFFFFFF, 500, 100);
 const ambientLight = new THREE.AmbientLight(0xFFFFFF, 500);
-const gridHelper = new THREE.GridHelper(30, 30);
+const gridHelper = new THREE.GridHelper(50, 50);
+let camera;
+let orbitControls;
 const renderer = new THREE.WebGLRenderer();
+
+function myRender() {
+	let cameraLocation = camera.position.clone();
+	pointLight.position.set(0, 10, cameraLocation.z);
+	renderer.render(scene, camera);
+}
+
 export default {
 	name: "AIRender",
-	data: function () {
+	data() {
 		return {
 			aiRate: 90,
 			content: "hello",
 			keepStyle: false,
-			isGenerating: false
+			isGenerating: false,
+			styleList: []
 		}
 	},
-	mounted: function () {
-		loader.load('@/assets/models3d/chair_full_demo.glb', function (glb) {
+	mounted() {
+		const vm = this;
+		loader.load('https://compare-patch1-1258190691.cos.ap-shanghai.myqcloud.com/youyi_resources/models/chair_demo.glb', function (glb) {
 			const loadedModel = glb.scene;
+			const width = vm.$refs.threeContainer.clientWidth, height = vm.$refs.threeContainer.clientHeight;
+			camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
 			models.push(loadedModel);
 			scene.add(loadedModel);
+			console.log(glb.scene);
 			pointLight.position.set(0, 10, 0);
+			camera.position.set(0, 5, 5)
 			scene.add(pointLight);
 			scene.add(ambientLight);
-			scene.add(gridHelper)
-			this.$refs.threeContainer.appendChild(renderer.domElement);
-			renderer.render(scene, camera);
-
+			scene.add(gridHelper);
+			renderer.setSize(width, height);
+			renderer.setClearColor(0xD4D4D4, 1)
+			vm.$refs.threeContainer.appendChild(renderer.domElement);
+			orbitControls = new OrbitControls(camera, renderer.domElement);
+			orbitControls.addEventListener('change', function () {
+				myRender();
+			})
+			myRender();
+			window.addEventListener('resize', () => {
+				renderer.setSize(vm.$refs.threeContainer.clientWidth, vm.$refs.threeContainer.clientHeight);
+				myRender();
+			})
 		})
 	}
 }
@@ -101,6 +128,19 @@ export default {
 	bottom: 0;
 	margin: auto;
 	background-color: transparent;
+}
+
+.tool-box-container {
+	position: absolute;
+	background-color: #212123;
+	width: 307px;
+	height: 63px;
+	border: #3D3D3D 1px solid;
+	border-radius: 45px;
+	left: 0;
+	bottom: 32px;
+	right: 0;
+	margin: auto;
 }
 
 .right-container {
