@@ -65,7 +65,7 @@
 			<div class="history-list-container">
 
 			</div>
-			<button class="generate-but" :class="{'generate-but-generating':isGenerating}">AI
+			<button class="generate-but" :class="{'generate-but-generating':isGenerating}" @click="renderStart()">AI
 				生成方案{{ isGenerating ? "..." : "" }}
 			</button>
 		</div>
@@ -80,13 +80,15 @@ import {TransformControls} from "three/addons/controls/TransformControls.js";
 const loader = new GLTFLoader();
 const scene = new THREE.Scene();
 const models = [];
-const pointLight = new THREE.PointLight(0xFFFFFF, 20, 30);
+const light = new THREE.PointLight(0xFFFFFF, 5, 50);
 const ambientLight = new THREE.AmbientLight(0x404040, 1);
 const gridHelper = new THREE.GridHelper(50, 50);
 let camera;
 let orbitControls;
 let transformControls;
-const renderer = new THREE.WebGLRenderer();
+const renderer = new THREE.WebGLRenderer({
+	preserveDrawingBuffer: true
+});
 const rayCaster = new THREE.Raycaster();
 const mouseVector = new THREE.Vector2();
 const customMaterial = new THREE.MeshStandardMaterial({
@@ -96,8 +98,28 @@ const customMaterial = new THREE.MeshStandardMaterial({
 
 function myRender() {
 	let cameraLocation = camera.position.clone();
-	pointLight.position.set(cameraLocation.x, cameraLocation.y, cameraLocation.z);
+	light.position.set(cameraLocation.x, cameraLocation.y+20, cameraLocation.z);
 	renderer.render(scene, camera);
+}
+
+function clickModel(width, height, event, vm) {
+	// 计算鼠标位置 (0到1)
+	mouseVector.x = (event.clientX / width) * 2 - 1;
+	mouseVector.y = -(event.clientY / height) * 2 + 1;
+
+	// 更新 Raycaster
+	rayCaster.setFromCamera(mouseVector, camera);
+
+	// 计算与模型的交叉点
+	const intersects = rayCaster.intersectObjects(models);
+
+	if (intersects.length > 0) {
+		// 如果有交互，获取第一个模型
+		const selectedModel = intersects[0].object;
+		transformControls.attach(selectedModel);
+		vm.selectedModel = selectedModel;
+		myRender();
+	}
 }
 
 export default {
@@ -127,9 +149,9 @@ export default {
 			models.push(loadedModel);
 			scene.add(loadedModel);
 			console.log(glb.scene);
-			pointLight.position.set(0, 10, 0);
+			light.position.set(0, 10, 0);
 			camera.position.set(0, 5, 5)
-			scene.add(pointLight);
+			scene.add(light);
 			scene.add(ambientLight);
 			scene.add(gridHelper);
 			renderer.setSize(width, height);
@@ -139,6 +161,7 @@ export default {
 			orbitControls.addEventListener('change', function () {
 				myRender();
 			})
+
 			transformControls = new TransformControls(camera, renderer.domElement);
 			transformControls.attach(loadedModel);
 			vm.selectedModel = loadedModel;
@@ -151,28 +174,20 @@ export default {
 			})
 			scene.add(transformControls);
 			myRender();
+			orbitControls.addEventListener('start', function () {
+				window.onclick = null;
+			})
+			orbitControls.addEventListener('end', function () {
+				window.onclick = function (e) {
+					clickModel(width, height, e, vm);
+				}
+			})
 			window.addEventListener('resize', () => {
 				renderer.setSize(vm.$refs.threeContainer.clientWidth, vm.$refs.threeContainer.clientHeight);
 				myRender();
 			})
 			window.addEventListener('click', (event) => {
-				// 计算鼠标位置 (0到1)
-				mouseVector.x = (event.clientX / width) * 2 - 1;
-				mouseVector.y = -(event.clientY / height) * 2 + 1;
-
-				// 更新 Raycaster
-				rayCaster.setFromCamera(mouseVector, camera);
-
-				// 计算与模型的交叉点
-				const intersects = rayCaster.intersectObjects(models);
-
-				if (intersects.length > 0) {
-					// 如果有交互，获取第一个模型
-					const selectedModel = intersects[0].object;
-					transformControls.attach(selectedModel);
-					vm.selectedModel = selectedModel;
-					myRender();
-				}
+				clickModel(width, height, event, vm)
 			});
 		})
 	},
@@ -189,6 +204,27 @@ export default {
 		},
 		isToolActive: function (mode) {
 			return mode === this.transformMode && this.selectedModel != null;
+		},
+		renderStart: async function () {
+			transformControls.detach(this.selectedModel);
+			this.selectedModel = null;
+			scene.remove(gridHelper);
+			await myRender();
+			const originCanvas = renderer.domElement;
+			const tmpCanvas = document.createElement("canvas");
+			const tmpContext = tmpCanvas.getContext('2d');
+			const width = originCanvas.width, height = originCanvas.height;
+			const size = Math.min(width, height);
+			const xOffset = (width - size) / 2;
+			tmpCanvas.width = 512;
+			tmpCanvas.height = 512;
+			tmpContext.drawImage(originCanvas, xOffset, 0, size, size, 0, 0, 512, 512);
+			const link = document.createElement("a");
+			link.href = tmpCanvas.toDataURL('image/png');
+			link.download = "scene.png";
+			link.click();
+			scene.add(gridHelper);
+			myRender();
 		}
 	}
 }
