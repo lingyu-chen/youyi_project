@@ -80,8 +80,8 @@ import {TransformControls} from "three/addons/controls/TransformControls.js";
 const loader = new GLTFLoader();
 const scene = new THREE.Scene();
 const models = [];
-const pointLight = new THREE.PointLight(0xFFFFFF, 20, 50);
-const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0);
+const pointLight = new THREE.PointLight(0xFFFFFF, 20, 30);
+const ambientLight = new THREE.AmbientLight(0x404040, 1);
 const gridHelper = new THREE.GridHelper(50, 50);
 let camera;
 let orbitControls;
@@ -96,7 +96,7 @@ const customMaterial = new THREE.MeshStandardMaterial({
 
 function myRender() {
 	let cameraLocation = camera.position.clone();
-	pointLight.position.set(0, 10, cameraLocation.z);
+	pointLight.position.set(cameraLocation.x, cameraLocation.y, cameraLocation.z);
 	renderer.render(scene, camera);
 }
 
