@@ -3,6 +3,29 @@
 	<div class="container">
 		<div class="left-container" ref="threeContainer">
 			<div class="tool-box-container">
+				<div class="tool-icon-outer">
+					<img class="tool-icon-inner" src="@/assets/tool-box-icons/upload.png" alt="">
+				</div>
+				<div class="vertical-separator"></div>
+				<div class="tool-icon-outer model-tool-icon-outer"
+				     :class="{'tool-icon-active':isToolActive('translate')}"
+				     @click="updateControlMode('translate')">
+					<img src="@/assets/tool-box-icons/drag.png" alt="" class="tool-icon-inner">
+				</div>
+				<div class="tool-icon-outer model-tool-icon-outer"
+				     :class="{'tool-icon-active':isToolActive('rotate')}"
+				     @click="updateControlMode('rotate')">
+					<img src="@/assets/tool-box-icons/rotate.png" alt="" class="tool-icon-inner">
+				</div>
+				<div class="tool-icon-outer model-tool-icon-outer"
+				     :class="{'tool-icon-active':isToolActive('scale')}"
+				     @click="updateControlMode('scale')">
+					<img src="@/assets/tool-box-icons/scale.png" alt="" class="tool-icon-inner">
+				</div>
+				<div class="vertical-separator" style="margin-left: 12px"></div>
+				<div class="tool-icon-outer delete-icon-outer">
+					<img src="@/assets/tool-box-icons/delete.png" alt="" class="tool-icon-inner">
+				</div>
 			</div>
 		</div>
 		<div class="right-container">
@@ -52,16 +75,24 @@
 import * as THREE from 'three';
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
+import {TransformControls} from "three/addons/controls/TransformControls.js";
 
 const loader = new GLTFLoader();
 const scene = new THREE.Scene();
 const models = [];
-const pointLight = new THREE.PointLight(0xFFFFFF, 500, 100);
-const ambientLight = new THREE.AmbientLight(0xFFFFFF, 500);
+const pointLight = new THREE.PointLight(0xFFFFFF, 20, 50);
+const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0);
 const gridHelper = new THREE.GridHelper(50, 50);
 let camera;
 let orbitControls;
+let transformControls;
 const renderer = new THREE.WebGLRenderer();
+const rayCaster = new THREE.Raycaster();
+const mouseVector = new THREE.Vector2();
+const customMaterial = new THREE.MeshStandardMaterial({
+	color: 0xdfe0e2,
+
+})
 
 function myRender() {
 	let cameraLocation = camera.position.clone();
@@ -77,6 +108,8 @@ export default {
 			content: "hello",
 			keepStyle: false,
 			isGenerating: false,
+			transformMode: 'translate',
+			selectedModel: null,
 			styleList: []
 		}
 	},
@@ -84,6 +117,11 @@ export default {
 		const vm = this;
 		loader.load('https://compare-patch1-1258190691.cos.ap-shanghai.myqcloud.com/youyi_resources/models/chair_demo.glb', function (glb) {
 			const loadedModel = glb.scene;
+			loadedModel.traverse(function (child) {
+				if (child.isMesh) {
+					child.material = customMaterial;
+				}
+			})
 			const width = vm.$refs.threeContainer.clientWidth, height = vm.$refs.threeContainer.clientHeight;
 			camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
 			models.push(loadedModel);
@@ -101,18 +139,64 @@ export default {
 			orbitControls.addEventListener('change', function () {
 				myRender();
 			})
+			transformControls = new TransformControls(camera, renderer.domElement);
+			transformControls.attach(loadedModel);
+			vm.selectedModel = loadedModel;
+			transformControls.setMode(vm.transformMode);
+			transformControls.addEventListener('change', function () {
+				myRender();
+			})
+			transformControls.addEventListener('dragging-changed', (e) => {
+				orbitControls.enabled = !e.value;
+			})
+			scene.add(transformControls);
 			myRender();
 			window.addEventListener('resize', () => {
 				renderer.setSize(vm.$refs.threeContainer.clientWidth, vm.$refs.threeContainer.clientHeight);
 				myRender();
 			})
+			window.addEventListener('click', (event) => {
+				// 计算鼠标位置 (0到1)
+				mouseVector.x = (event.clientX / width) * 2 - 1;
+				mouseVector.y = -(event.clientY / height) * 2 + 1;
+
+				// 更新 Raycaster
+				rayCaster.setFromCamera(mouseVector, camera);
+
+				// 计算与模型的交叉点
+				const intersects = rayCaster.intersectObjects(models);
+
+				if (intersects.length > 0) {
+					// 如果有交互，获取第一个模型
+					const selectedModel = intersects[0].object;
+					transformControls.attach(selectedModel);
+					vm.selectedModel = selectedModel;
+					myRender();
+				}
+			});
 		})
+	},
+	methods: {
+		updateControlMode: function (mode) {
+			if (mode === this.transformMode && this.selectedModel != null) {
+				transformControls.detach(this.selectedModel);
+				this.selectedModel = null;
+				myRender();
+				return;
+			}
+			this.transformMode = mode;
+			transformControls.setMode(this.transformMode);
+		},
+		isToolActive: function (mode) {
+			return mode === this.transformMode && this.selectedModel != null;
+		}
 	}
 }
 </script>
 
 
 <style scoped lang="scss">
+
 .container {
 	position: relative;
 	background-color: #d4d4d4;
@@ -141,7 +225,52 @@ export default {
 	bottom: 32px;
 	right: 0;
 	margin: auto;
+	display: flex;
+	align-items: center;
 }
+
+.tool-icon-outer {
+	width: 40px;
+	height: 40px;
+	position: relative;
+	border-radius: 4px;
+	background-color: transparent;
+	transition: background-color 0.15s linear;
+	margin-left: 22px;
+}
+
+.delete-icon-outer {
+	margin-left: 6px;
+}
+
+.model-tool-icon-outer {
+	margin-left: 12px;
+}
+
+.tool-icon-active, .tool-icon-active:hover {
+	background-color: #2400ff;
+}
+
+.tool-icon-inner {
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+}
+
+.vertical-separator {
+	height: 40px;
+	width: 0;
+	border: #3D3D3D 1px solid;
+	margin-left: 9px;
+}
+
+.tool-icon-outer:hover {
+	background-color: #2400ff;
+}
+
 
 .right-container {
 	position: absolute;
@@ -328,4 +457,6 @@ export default {
 	cursor: not-allowed;
 	background-color: #412cbe;
 }
+
+
 </style>

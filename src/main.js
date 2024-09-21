@@ -11,6 +11,7 @@ import store from './store'
 //引入fabric
 import {fabric} from 'fabric';
 
+
 Vue.config.productionTip = false
 
 Vue.use(ElementUI);
@@ -18,7 +19,6 @@ Vue.use(ElementUI);
 Vue.use(VueRouter);
 //应用fabric
 Vue.use(fabric);
-Vue.use(Icon);
 
 new Vue({
     render: h => h(App),
