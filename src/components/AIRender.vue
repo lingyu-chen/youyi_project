@@ -1,10 +1,12 @@
 <template>
 
 	<div class="container">
-		<div class="left-container" ref="threeContainer">
-			<div class="loading-container" v-if="isGenerating">
-				<div class="loader"><i class="el-icon-loading"></i></div>
-				<button class="cancel-task-but">×取&nbsp;&nbsp;消</button>
+		<div class="left-container" ref="threeContainer" @keydown.delete="deleteModel" tabindex="-1">
+			<div class="loading-container" v-if="isGenerating||isFinished">
+				<div class="loader" v-if="isGenerating"><i class="el-icon-loading"></i></div>
+				<img class="result-picture" v-if="isFinished" :src="resultUrl" alt="">
+
+				<button class="cancel-task-but" @click="releaseResult()">×取&nbsp;&nbsp;消</button>
 			</div>
 			<div class="tool-box-container">
 				<div class="tool-icon-outer">
@@ -34,7 +36,7 @@
 		</div>
 		<div class="right-container">
 			<h1 class="option-title">Prompt 提示词</h1>
-			<textarea class="prompt-input" :value="prompts"></textarea>
+			<textarea class="prompt-input" v-model="prompts"></textarea>
 			<div class="separator"></div>
 			<div class="ai-rate-container">
 				<h1 class="option-title">AI 影响率</h1>
@@ -76,7 +78,8 @@
 			<div class="history-list-container">
 
 			</div>
-			<button class="generate-but" :class="{'generate-but-generating':isGenerating}" @click="generateStart()">AI
+			<button class="generate-but" :class="{'generate-but-generating':isGenerating}" @click="generateStart()"
+			        :disabled="isGenerating||isFinished">AI
 				生成方案{{ isGenerating ? "中..." : "" }}
 			</button>
 		</div>
@@ -87,7 +90,16 @@ import * as THREE from 'three';
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
 import {TransformControls} from "three/addons/controls/TransformControls.js";
-import {fileFinish, getProjectDetail, getStyleList, projectSave, uploadFile, uploadModelFile} from "@/api";
+import {
+	cancelTask,
+	fileFinish, fileRelease, findTaskStatus,
+	getProjectDetail,
+	getStyleList,
+	projectSave,
+	taskGenerate,
+	uploadFile,
+	uploadModelFile
+} from "@/api";
 import {GLTFExporter} from 'three/examples/jsm/exporters/GLTFExporter.js';
 
 
@@ -95,7 +107,7 @@ import {GLTFExporter} from 'three/examples/jsm/exporters/GLTFExporter.js';
 
 const loader = new GLTFLoader();
 const scene = new THREE.Scene();
-const models = [];
+let models = [];
 const light = new THREE.PointLight(0xFFFFFF, 5, 50);
 const ambientLight = new THREE.AmbientLight(0x404040, 1);
 const gridHelper = new THREE.GridHelper(50, 50);
@@ -150,11 +162,14 @@ export default {
 			projectName: "",
 			type: this.$route.query.type,
 			keepStyle: false,
-			isGenerating: false,
 			transformMode: 'translate',
 			selectedModel: null,
 			styleList: [],
-			chosenStyle: 1
+			chosenStyle: 1,
+			status: 'EDIT', // EDIT RUNNING FINISHED
+			checkTimer: null,
+			resultUrl: '',
+			runningTaskId: 0
 		}
 	},
 
@@ -170,7 +185,14 @@ export default {
 		this.getProjectDetail();
 
 	},
-	computed: {},
+	computed: {
+		isGenerating: function () {
+			return this.status === 'RUNNING';
+		},
+		isFinished: function () {
+			return this.status === 'FINISHED';
+		}
+	},
 	methods: {
 		loadModel3D: function (url) {
 			const vm = this;
@@ -231,12 +253,15 @@ export default {
 			})
 		},
 		getProjectDetail: async function () {
+			const vm = this;
 			await getProjectDetail(this.$route.query.id).then(
 				(response) => {
-					this.projectName = response.data.name;
-					this.aiRate = Math.min(100.0, Math.abs(response.data.aiRate * 100)).toFixed(0);
-					this.prompts = response.data.prompt == null ? '' : response.data.prompt.join(', ');
-					this.loadModel3D(response.data.model.link);
+					vm.projectName = response.data.name;
+					vm.aiRate = parseInt(Math.min(100.0, Math.abs(response.data.aiRate * 100)).toFixed(0));
+					vm.prompts = response.data.prompt == null ? '' : response.data.prompt.join(',');
+					vm.chosenStyle = response.data.style;
+					let link = response.data.model == null ? null : response.data.model.link;
+					vm.loadModel3D(link);
 				},
 				(error) => {
 					console.log("request project detail error:", error);
@@ -256,8 +281,10 @@ export default {
 		isToolActive: function (mode) {
 			return mode === this.transformMode && this.selectedModel != null;
 		},
-		generateStart: function () {
-			this.isGenerating = true;
+		generateStart: async function () {
+			const vm = this;
+			const renderedPicBlob = this.getRenderedPic();
+			this.status = 'RUNNING';
 			projectSave({
 				id: this.projectId,
 				name: this.projectName,
@@ -267,47 +294,90 @@ export default {
 				modified: true,
 				randomSeed: this.keepStyle ? this.projectId : new Date().getTime()
 			}).then(
-				(response) => {
-					let saveSuccess = true;
-					response.data.uploadParams.forEach(async function (element) {
+				async (response) => {
+					let saveSuccess = false;
+					const promises = response.data.uploadParams.map(async (element) => {
 						const tag = element.tag;
 						const fileId = element.fileId;
 						const hostUrl = element.hostUrl;
 						if (tag === 'canvas') {
-							await uploadFile(hostUrl, this.base64ToBlob({
-								b64data: this.getRenderedPic(),
+							return uploadFile(hostUrl, vm.base64ToBlob({
+								b64data: renderedPicBlob,
 								contentType: "image/png"
-							})).then((result) => {
+							})).then(async (result) => {
 								console.log(result);
-								this.fileFinishFunc(tag, fileId, this.projectId);
+								await vm.fileFinishFunc(tag, fileId, this.projectId);
+								saveSuccess = true;
 							}, (error) => {
 								console.log(error);
 								saveSuccess = false;
 							});
 						} else {
-							await uploadModelFile(hostUrl, this.getModelBlob()).then((result) => {
-								console.log(result);
-								this.fileFinishFunc(tag, fileId, this.projectId);
+							return this.getModelBlob().then(blob => {
+								uploadModelFile(hostUrl, blob).then(async (result) => {
+									console.log(result);
+									await vm.fileFinishFunc(tag, fileId, this.projectId);
+									saveSuccess = true;
+								}, (error) => {
+									console.log(error);
+									saveSuccess = false;
+								}).catch(error => {
+									console.log(error);
+								});
+							})
+						}
+					})
+					await Promise.all(promises).then(async () => {
+						if (saveSuccess) {
+							await taskGenerate({
+								projectId: vm.projectId,
+							}).then((result) => {
+								vm.taskCheckStart(result.data.tid);
+								vm.runningTaskId = result.data.tid;
 							}, (error) => {
 								console.log(error);
-								saveSuccess = false;
-							});
+								vm.setError();
+							})
+						} else {
+							vm.setError();
 						}
-					});
-					if (saveSuccess) {
-						let tid;
+					})
 
-					}
+
 				},
 				(error) => {
 					console.log("上传文件失败", error)
+					vm.setError();
 				}
 			)
+		},
+		taskCheckStart: function (tid) {
+			const vm = this;
+			this.checkTimer = setInterval(function () {
+				findTaskStatus(tid).then(
+					(response) => {
+						let task = response.data.results[0];
+						if (task.status === 'FINISHED') {
+							vm.resultUrl = task.result.link;
+							vm.status = 'FINISHED';
+							console.log('vm status is ' + vm.status + 'when finished.')
+							clearInterval(vm.checkTimer);
+						} else if (task.status === 'ERROR') {
+							vm.status = 'ERROR';
+							clearInterval(vm.checkTimer)
+						}
+					},
+					(error) => {
+						console.log(error);
+						vm.setError();
+						clearInterval(vm.checkTimer);
+					}
+				)
+			}, 1200)
 		},
 		base64ToBlob({b64data = "", contentType = "", sliceSize = 512} = {}) {
 			// 使用 atob() 方法将数据解码
 			const b64dataformat = b64data.substring("data:image/png;base64,".length);
-			console.log("b64dataformat:", b64dataformat);
 			let byteCharacters = atob(b64dataformat);
 			let byteArrays = [];
 			for (
@@ -327,12 +397,13 @@ export default {
 			return new Blob(byteArrays, {
 				type: contentType,
 			});
-		},
-		getRenderedPic: async function () {
+		}
+		,
+		getRenderedPic: function () {
 			transformControls.detach(this.selectedModel);
 			this.selectedModel = null;
 			scene.remove(gridHelper);
-			await myRender();
+			myRender();
 			const originCanvas = renderer.domElement;
 			const tmpCanvas = document.createElement("canvas");
 			const tmpContext = tmpCanvas.getContext('2d');
@@ -346,23 +417,41 @@ export default {
 			scene.add(gridHelper);
 			myRender();
 			return res;
-		},
+		}
+		,
 		getModelBlob: function () {
-			const exporter = new GLTFExporter();
-			exporter.parse(scene, function (result) {
-					if (result instanceof ArrayBuffer) {
-						return new Blob([result], {type: "model/gltf-binary"});
-					}
-				}, function (err) {
-					console.log(err);
-				},
-				{
-					binary: true,
-				});
-			return null;
-		},
-		fileFinishFunc: function (tag, fileId, projectId) {
-			fileFinish({
+			return new Promise((resolve, reject) => {
+				const exporter = new GLTFExporter();
+				scene.remove(light);
+				scene.remove(ambientLight);
+				scene.remove(transformControls);
+				scene.remove(gridHelper);
+				exporter.parse(scene, async function (result) {
+						if (result instanceof ArrayBuffer) {
+							const modelBlob = await new Blob([result], {type: "model/gltf-binary"});
+							resolve(modelBlob);
+							scene.add(light);
+							scene.add(ambientLight);
+							scene.add(transformControls);
+							scene.add(gridHelper);
+							myRender();
+						}
+					}, function (err) {
+						console.log(err);
+						reject(err);
+						scene.add(light);
+						scene.add(ambientLight);
+						scene.add(transformControls);
+						myRender();
+					},
+					{
+						binary: true,
+					});
+			})
+		}
+		,
+		fileFinishFunc: async function (tag, fileId, projectId) {
+			return fileFinish({
 				tag: tag,
 				projectId: projectId,
 				fileId: fileId,
@@ -373,7 +462,39 @@ export default {
 					console.log(error);
 				}
 			)
+		},
+		setError() {
+			this.status = 'ERROR';
+		},
+		releaseResult: function () {
+			this.status = 'EDIT';
+			if (this.status === 'RUNNING') {
+				cancelTask(this.runningTaskId).then(
+					(response) => {
+						console.log(response.data.tid + " cancelled");
+					}, (error) => {
+						console.log(error);
+					})
+			} else if (this.status === 'FINISHED') {
+				fileRelease({projectId: this.projectId}).then(
+					(result) => {
+						console.log("release task " + result.data.status);
+					},
+					(error) => {
+						console.log(error);
+					})
+			}
+		},
+		deleteModel: function () {
+			if (this.selectedModel != null) {
+				transformControls.detach(this.selectedModel);
+				scene.remove(this.selectedModel);
+				models = models.filter((item) => item !== this.selectedModel);
+				this.selectedModel = null;
+				myRender();
+			}
 		}
+
 	}
 }
 </script>
@@ -404,6 +525,18 @@ export default {
 	width: 100%;
 	height: 100%;
 	background-color: rgba(217, 217, 217, 0.75);
+}
+
+.result-picture {
+	display: block;
+	position: absolute;
+	width: 512px;
+	height: 512px;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
 }
 
 .loader {
