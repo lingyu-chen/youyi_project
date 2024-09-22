@@ -1,12 +1,13 @@
 import axios from 'axios';
-import { Message, MessageBox } from 'element-ui';
-import { Session } from './storage';
+import {Message, MessageBox} from 'element-ui';
+import {Session} from './storage';
 
 // 配置新建一个 axios 实例
 const service = axios.create({
-    baseURL: 'http://116.62.112.11:8081',
+    //baseURL: 'http://116.62.112.11:8081',
+    baseURL: 'http://localhost:8081',
     timeout: 50000,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {'Content-Type': 'application/json'},
 });
 
 // 添加请求拦截器

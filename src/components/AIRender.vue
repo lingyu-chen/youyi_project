@@ -2,6 +2,10 @@
 
 	<div class="container">
 		<div class="left-container" ref="threeContainer">
+			<div class="loading-container" v-if="isGenerating">
+				<div class="loader"><i class="el-icon-loading"></i></div>
+				<button class="cancel-task-but">×取&nbsp;&nbsp;消</button>
+			</div>
 			<div class="tool-box-container">
 				<div class="tool-icon-outer">
 					<img class="tool-icon-inner" src="@/assets/tool-box-icons/upload.png" alt="">
@@ -30,7 +34,7 @@
 		</div>
 		<div class="right-container">
 			<h1 class="option-title">Prompt 提示词</h1>
-			<textarea class="prompt-input"></textarea>
+			<textarea class="prompt-input" :value="prompts"></textarea>
 			<div class="separator"></div>
 			<div class="ai-rate-container">
 				<h1 class="option-title">AI 影响率</h1>
@@ -45,8 +49,15 @@
 				placeholder="请选择"
 				style="color: #ff0000"
 				:popper-append-to-body="false"
-				:value="styleList"
-				class="style-list-select">
+				v-model="chosenStyle"
+				class="style-list-select"
+			>
+				<el-option
+					v-for="item in styleList"
+					:key="item.sid"
+					:label="item.name"
+					:value="item.sid"
+				></el-option>
 			</el-select>
 			<div class="separator"></div>
 			<h1 class="option-title">参考图片</h1>
@@ -65,8 +76,8 @@
 			<div class="history-list-container">
 
 			</div>
-			<button class="generate-but" :class="{'generate-but-generating':isGenerating}" @click="renderStart()">AI
-				生成方案{{ isGenerating ? "..." : "" }}
+			<button class="generate-but" :class="{'generate-but-generating':isGenerating}" @click="generateStart()">AI
+				生成方案{{ isGenerating ? "中..." : "" }}
 			</button>
 		</div>
 	</div>
@@ -76,6 +87,9 @@ import * as THREE from 'three';
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
 import {TransformControls} from "three/addons/controls/TransformControls.js";
+import {getProjectDetail, getStyleList} from "@/api";
+
+/* Three.JS Scene Properties Start */
 
 const loader = new GLTFLoader();
 const scene = new THREE.Scene();
@@ -98,7 +112,7 @@ const customMaterial = new THREE.MeshStandardMaterial({
 
 function myRender() {
 	let cameraLocation = camera.position.clone();
-	light.position.set(cameraLocation.x, cameraLocation.y+20, cameraLocation.z);
+	light.position.set(cameraLocation.x, cameraLocation.y + 20, cameraLocation.z);
 	renderer.render(scene, camera);
 }
 
@@ -122,76 +136,110 @@ function clickModel(width, height, event, vm) {
 	}
 }
 
+/* Three.JS Scene Properties End */
+
 export default {
 	name: "AIRender",
 	data() {
 		return {
 			aiRate: 90,
-			content: "hello",
+			prompts: '',
+			projectId: this.$route.query.id,
+			type: this.$route.query.type,
 			keepStyle: false,
 			isGenerating: false,
 			transformMode: 'translate',
 			selectedModel: null,
-			styleList: []
+			styleList: [],
+			chosenStyle: null
 		}
 	},
-	mounted() {
-		const vm = this;
-		loader.load('https://compare-patch1-1258190691.cos.ap-shanghai.myqcloud.com/youyi_resources/models/chair_demo.glb', function (glb) {
-			const loadedModel = glb.scene;
-			loadedModel.traverse(function (child) {
-				if (child.isMesh) {
-					child.material = customMaterial;
-				}
-			})
-			const width = vm.$refs.threeContainer.clientWidth, height = vm.$refs.threeContainer.clientHeight;
-			camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-			models.push(loadedModel);
-			scene.add(loadedModel);
-			console.log(glb.scene);
-			light.position.set(0, 10, 0);
-			camera.position.set(0, 5, 5)
-			scene.add(light);
-			scene.add(ambientLight);
-			scene.add(gridHelper);
-			renderer.setSize(width, height);
-			renderer.setClearColor(0xD4D4D4, 1)
-			vm.$refs.threeContainer.appendChild(renderer.domElement);
-			orbitControls = new OrbitControls(camera, renderer.domElement);
-			orbitControls.addEventListener('change', function () {
-				myRender();
-			})
 
-			transformControls = new TransformControls(camera, renderer.domElement);
-			transformControls.attach(loadedModel);
-			vm.selectedModel = loadedModel;
-			transformControls.setMode(vm.transformMode);
-			transformControls.addEventListener('change', function () {
-				myRender();
-			})
-			transformControls.addEventListener('dragging-changed', (e) => {
-				orbitControls.enabled = !e.value;
-			})
-			scene.add(transformControls);
-			myRender();
-			orbitControls.addEventListener('start', function () {
-				window.onclick = null;
-			})
-			orbitControls.addEventListener('end', function () {
-				window.onclick = function (e) {
-					clickModel(width, height, e, vm);
-				}
-			})
-			window.addEventListener('resize', () => {
-				renderer.setSize(vm.$refs.threeContainer.clientWidth, vm.$refs.threeContainer.clientHeight);
-				myRender();
-			})
-			window.addEventListener('click', (event) => {
-				clickModel(width, height, event, vm)
-			});
-		})
+	mounted() {
+		getStyleList().then(
+			(response) => {
+				this.styleList = response.data.styles;
+			},
+			(error) => {
+				console.log("request style list error:", error);
+			}
+		)
+		this.getProjectDetail();
+
 	},
+	computed: {},
 	methods: {
+		loadModel3D: function (url) {
+			const vm = this;
+			if (url == null || url === '') {
+				url = "https://compare-patch1-1258190691.cos.ap-shanghai.myqcloud.com/youyi_resources/models/chair_demo.glb";
+			}
+			loader.load(url, function (glb) {
+				const loadedModel = glb.scene;
+				loadedModel.traverse(function (child) {
+					if (child.isMesh) {
+						child.material = customMaterial;
+					}
+				})
+				const width = vm.$refs.threeContainer.clientWidth, height = vm.$refs.threeContainer.clientHeight;
+				camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+				models.push(loadedModel);
+				scene.add(loadedModel);
+				light.position.set(0, 10, 0);
+				camera.position.set(0, 5, 5)
+				scene.add(light);
+				scene.add(ambientLight);
+				scene.add(gridHelper);
+				renderer.setSize(width, height);
+				renderer.setClearColor(0xD4D4D4, 1)
+				vm.$refs.threeContainer.appendChild(renderer.domElement);
+				orbitControls = new OrbitControls(camera, renderer.domElement);
+				orbitControls.addEventListener('change', function () {
+					myRender();
+				})
+
+				transformControls = new TransformControls(camera, renderer.domElement);
+				transformControls.attach(loadedModel);
+				vm.selectedModel = loadedModel;
+				transformControls.setMode(vm.transformMode);
+				transformControls.addEventListener('change', function () {
+					myRender();
+				})
+				transformControls.addEventListener('dragging-changed', (e) => {
+					orbitControls.enabled = !e.value;
+				})
+				scene.add(transformControls);
+				myRender();
+				orbitControls.addEventListener('start', function () {
+					window.onclick = null;
+				})
+				orbitControls.addEventListener('end', function () {
+					window.onclick = function (e) {
+						clickModel(width, height, e, vm);
+					}
+				})
+				window.addEventListener('resize', () => {
+					renderer.setSize(vm.$refs.threeContainer.clientWidth, vm.$refs.threeContainer.clientHeight);
+					myRender();
+				})
+				window.addEventListener('click', (event) => {
+					clickModel(width, height, event, vm)
+				});
+			})
+		},
+		getProjectDetail: async function () {
+			await getProjectDetail(this.$route.query.id).then(
+				(response) => {
+					this.aiRate = Math.min(100.0, Math.abs(response.data.aiRate * 100)).toFixed(0);
+					this.prompts = response.data.prompt == null ? '' : response.data.prompt.join(', ');
+					this.loadModel3D(response.data.model.link);
+
+				},
+				(error) => {
+					console.log("request project detail error:", error);
+				}
+			)
+		},
 		updateControlMode: function (mode) {
 			if (mode === this.transformMode && this.selectedModel != null) {
 				transformControls.detach(this.selectedModel);
@@ -205,7 +253,11 @@ export default {
 		isToolActive: function (mode) {
 			return mode === this.transformMode && this.selectedModel != null;
 		},
-		renderStart: async function () {
+		generateStart: function () {
+			this.isGenerating = true;
+
+		},
+		getRenderedPic: async function () {
 			transformControls.detach(this.selectedModel);
 			this.selectedModel = null;
 			scene.remove(gridHelper);
@@ -243,12 +295,55 @@ export default {
 .left-container {
 	position: absolute;
 	left: 0;
-	right: 336px;
+	right: 368px;
 	top: 0;
 	bottom: 0;
 	margin: auto;
 	background-color: transparent;
 }
+
+.loading-container {
+	position: absolute;
+	z-index: 5;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(217, 217, 217, 0.75);
+}
+
+.loader {
+	width: 211px;
+	height: 211px;
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	right: 0;
+	top: 0;
+	margin: auto;
+	font-size: 168px;
+}
+
+.cancel-task-but {
+	position: absolute;
+	bottom: 40px;
+	left: 0;
+	right: 0;
+	margin: auto;
+	width: 154px;
+	height: 48px;
+	border: 0;
+	color: white;
+	background-color: #2400ff;
+	border-radius: 50px;
+	font-family: AliMedium, serif;
+	font-size: 20px;
+	cursor: pointer;
+}
+
+.cancel-task-but::first-letter {
+	font-size: 25px;
+	margin-right: 7px;
+}
+
 
 .tool-box-container {
 	position: absolute;

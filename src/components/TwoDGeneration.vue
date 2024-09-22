@@ -384,7 +384,7 @@ import {
   findTaskStatus,
   fileOverwrite,
   fileRelease,
-} from "@/api/index";
+} from "@/api";
 import { Sketch } from "vue-color";
 import { fabric } from "fabric-with-erasing";
 //形状绘图

@@ -147,7 +147,7 @@ export default {
     },
     getProgress(tasks) {
       for (var i = 0; i < tasks.length; i++) {
-        if (tasks[i].status == "RUNNING" || "READY" || "UPLOADING") {
+        if (tasks[i].status === "RUNNING" || "READY" || "UPLOADING") {
           // this.leftTime = tasks[i].leftTime;
           // console.log("getLeftTime:",tasks[i].leftTime)
           return Math.round(tasks[i].progress * 100);
@@ -156,11 +156,20 @@ export default {
     },
     jumpPage(type, id, name) {
       console.log("jumpPage name:", name);
-      if (type == "picgen") {
+      if (type === "picgen") {
         this.$router.push({
           path: "/home/generation",
           query: { type: type, id: id, name: name },
         });
+      }else if(type==='airender'){
+		  this.$router.push({
+			  path:"/home/airender",
+			  query:{
+				  type: type,
+				  id: id,
+				  name: name
+			  }
+		  })
       }
     },
     modifyTime(time) {
