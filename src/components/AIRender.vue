@@ -87,7 +87,9 @@ import * as THREE from 'three';
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
 import {TransformControls} from "three/addons/controls/TransformControls.js";
-import {getProjectDetail, getStyleList} from "@/api";
+import {fileFinish, getProjectDetail, getStyleList, projectSave, uploadFile, uploadModelFile} from "@/api";
+import {GLTFExporter} from 'three/examples/jsm/exporters/GLTFExporter.js';
+
 
 /* Three.JS Scene Properties Start */
 
@@ -145,13 +147,14 @@ export default {
 			aiRate: 90,
 			prompts: '',
 			projectId: this.$route.query.id,
+			projectName: "",
 			type: this.$route.query.type,
 			keepStyle: false,
 			isGenerating: false,
 			transformMode: 'translate',
 			selectedModel: null,
 			styleList: [],
-			chosenStyle: null
+			chosenStyle: 1
 		}
 	},
 
@@ -230,10 +233,10 @@ export default {
 		getProjectDetail: async function () {
 			await getProjectDetail(this.$route.query.id).then(
 				(response) => {
+					this.projectName = response.data.name;
 					this.aiRate = Math.min(100.0, Math.abs(response.data.aiRate * 100)).toFixed(0);
 					this.prompts = response.data.prompt == null ? '' : response.data.prompt.join(', ');
 					this.loadModel3D(response.data.model.link);
-
 				},
 				(error) => {
 					console.log("request project detail error:", error);
@@ -255,7 +258,75 @@ export default {
 		},
 		generateStart: function () {
 			this.isGenerating = true;
+			projectSave({
+				id: this.projectId,
+				name: this.projectName,
+				prompt: this.prompts.split(','),
+				aiRate: this.aiRate / 100.0,
+				style: this.chosenStyle,
+				modified: true,
+				randomSeed: this.keepStyle ? this.projectId : new Date().getTime()
+			}).then(
+				(response) => {
+					let saveSuccess = true;
+					response.data.uploadParams.forEach(async function (element) {
+						const tag = element.tag;
+						const fileId = element.fileId;
+						const hostUrl = element.hostUrl;
+						if (tag === 'canvas') {
+							await uploadFile(hostUrl, this.base64ToBlob({
+								b64data: this.getRenderedPic(),
+								contentType: "image/png"
+							})).then((result) => {
+								console.log(result);
+								this.fileFinishFunc(tag, fileId, this.projectId);
+							}, (error) => {
+								console.log(error);
+								saveSuccess = false;
+							});
+						} else {
+							await uploadModelFile(hostUrl, this.getModelBlob()).then((result) => {
+								console.log(result);
+								this.fileFinishFunc(tag, fileId, this.projectId);
+							}, (error) => {
+								console.log(error);
+								saveSuccess = false;
+							});
+						}
+					});
+					if (saveSuccess) {
+						let tid;
 
+					}
+				},
+				(error) => {
+					console.log("上传文件失败", error)
+				}
+			)
+		},
+		base64ToBlob({b64data = "", contentType = "", sliceSize = 512} = {}) {
+			// 使用 atob() 方法将数据解码
+			const b64dataformat = b64data.substring("data:image/png;base64,".length);
+			console.log("b64dataformat:", b64dataformat);
+			let byteCharacters = atob(b64dataformat);
+			let byteArrays = [];
+			for (
+				let offset = 0;
+				offset < byteCharacters.length;
+				offset += sliceSize
+			) {
+				let slice = byteCharacters.slice(offset, offset + sliceSize);
+				let byteNumbers = [];
+				for (let i = 0; i < slice.length; i++) {
+					byteNumbers.push(slice.charCodeAt(i));
+				}
+				// 8 位无符号整数值的类型化数组。内容将初始化为 0。
+				// 如果无法分配请求数目的字节，则将引发异常。
+				byteArrays.push(new Uint8Array(byteNumbers));
+			}
+			return new Blob(byteArrays, {
+				type: contentType,
+			});
 		},
 		getRenderedPic: async function () {
 			transformControls.detach(this.selectedModel);
@@ -271,12 +342,37 @@ export default {
 			tmpCanvas.width = 512;
 			tmpCanvas.height = 512;
 			tmpContext.drawImage(originCanvas, xOffset, 0, size, size, 0, 0, 512, 512);
-			const link = document.createElement("a");
-			link.href = tmpCanvas.toDataURL('image/png');
-			link.download = "scene.png";
-			link.click();
+			const res = tmpCanvas.toDataURL('image/png');
 			scene.add(gridHelper);
 			myRender();
+			return res;
+		},
+		getModelBlob: function () {
+			const exporter = new GLTFExporter();
+			exporter.parse(scene, function (result) {
+					if (result instanceof ArrayBuffer) {
+						return new Blob([result], {type: "model/gltf-binary"});
+					}
+				}, function (err) {
+					console.log(err);
+				},
+				{
+					binary: true,
+				});
+			return null;
+		},
+		fileFinishFunc: function (tag, fileId, projectId) {
+			fileFinish({
+				tag: tag,
+				projectId: projectId,
+				fileId: fileId,
+				finish: true
+			}).then((result) => {
+					console.log(tag + " file finished " + result.data.status);
+				}, (error) => {
+					console.log(error);
+				}
+			)
 		}
 	}
 }

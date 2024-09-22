@@ -140,6 +140,16 @@ export function uploadFile(url, params) {
         }
     });
 }
+export function uploadModelFile(url, params) {
+    return request({
+        url:url,
+        method:'put',
+        data:params,
+        headers: {
+            'Content-Type': 'model/gltf-binary'
+        }
+    })
+}
 
 /**
  * 文件上传完成通告（确认生成）

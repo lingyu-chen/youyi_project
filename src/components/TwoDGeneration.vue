@@ -373,20 +373,20 @@ import EllipseAlpha from "../assets/ellipse.png";
 import LineAlpha from "../assets/line.png";
 
 import {
-  getStyleList,
-  getProjectDetail,
-  getHistoryList,
-  projectSave,
-  taskGenerate,
-  uploadFile,
-  fileFinish,
-  cancelTask,
-  findTaskStatus,
-  fileOverwrite,
-  fileRelease,
+	cancelTask,
+	fileFinish,
+	fileOverwrite,
+	fileRelease,
+	findTaskStatus,
+	getHistoryList,
+	getProjectDetail,
+	getStyleList,
+	projectSave,
+	taskGenerate,
+	uploadFile,
 } from "@/api";
-import { Sketch } from "vue-color";
-import { fabric } from "fabric-with-erasing";
+import {Sketch} from "vue-color";
+import {fabric} from "fabric-with-erasing";
 //形状绘图
 import hotkeys from "hotkeys-js"; //判断热键值
 window.fabric = fabric;
@@ -1354,10 +1354,9 @@ export default {
         // 如果无法分配请求数目的字节，则将引发异常。
         byteArrays.push(new Uint8Array(byteNumbers));
       }
-      let result = new Blob(byteArrays, {
-        type: contentType,
+	    return new Blob(byteArrays, {
+	      type: contentType,
       });
-      return result;
     },
     cancelGenerate() {
       //点击取消按钮取消生成任务
