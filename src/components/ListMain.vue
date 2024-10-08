@@ -350,28 +350,29 @@ export default {
 .project-list {
   display: inline-block;
   background-color: #242425;
-  width: 446px;
-  height: 256px;
+  // width: 446px;
+  // height: 256px;
+  width: 288px;
+  height: 162px;
   border-radius: 16px;
   margin: 24px 12px 0 12px;
   border: 0px;
 
   .list {
     display: inline-block;
-    // background-color: #242425;
-    width: 446px;
-    height: 256px;
-    // border-radius: 16px;
-    // margin: 24px 12px 0 12px;
-    // border:0px;
-    // margin-top: 24px;
+    // width: 446px;
+    // height: 256px;
+    width: 288px;
+    height: 162px;
     .status-running {
       display: flex;
       // justify-content: center;
       align-items: center;
       flex-direction: column;
-      width: 446px;
-      height: 200px;
+      // width: 446px;
+      // height: 200px;
+      width: 288px;
+      height: 162px;
 
       /deep/ .el-progress {
         margin-top: 28px;
@@ -421,8 +422,10 @@ export default {
 
     .list-image {
       display: block;
-      width: 446px;
-      height: 200px;
+      // width: 446px;
+      // height: 200px;
+      width: 288px;
+      height: 106px;
       border-radius: 16px 16px 0 0;
     }
 
@@ -487,6 +490,44 @@ export default {
         color: #fff;
         font-size: 24px;
         text-align: center;
+      }
+    }
+  }
+}
+@media screen and (max-width: 1200px) {
+  .project-list {
+    width: 293px;
+    height: 165px;
+    .list {
+      width: 293px;
+      height: 165px;
+      .status-running {
+        width: 293px;
+        height: 165px;
+      }
+
+      .list-image {
+        width: 293px;
+        height: 165px;
+      }
+    }
+  }
+}
+@media screen and (max-width: 626px) {
+  .project-list {
+    width: 552px;
+    height: 311px;
+    .list {
+      width: 552px;
+      height: 311px;
+      .status-running {
+        width: 552px;
+        height: 311px;
+      }
+
+      .list-image {
+        width: 552px;
+        height: 311px;
       }
     }
   }

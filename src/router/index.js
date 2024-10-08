@@ -12,25 +12,25 @@ import AIRender from "../components/AIRender.vue";
 //创建并暴露一个路由器
 export default new VueRouter({
     routes: [{
-        path: '/',
-        redirect: '/login'
-    }, {
-        path: '/login',
-        name: 'Login',
-        component: Login,
-    },
+            path: '/',
+            redirect: '/login'
+        }, {
+            path: '/login',
+            name: 'Login',
+            component: Login,
+        },
         {
             path: '/home',
-            name: 'Home',
+            // name: 'Home',
             component: Home,
             children: [{
-                path: '', // 这里设置默认路径，将展示第一个子路由
-                component: Index
-            }, {
-                path: 'index',
-                name: 'Index',
-                component: Index,
-            },
+                    path: '', // 这里设置默认路径，将展示第一个子路由
+                    component: Index
+                }, {
+                    path: 'index',
+                    name: 'Index',
+                    component: Index,
+                },
                 {
                     path: 'generation',
                     name: 'Generation',

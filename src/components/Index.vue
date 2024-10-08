@@ -279,6 +279,8 @@ export default {
   padding: 10px 0;
 }
 .hover-gradient {
+  display: flex;
+  justify-content: center;
   // pointer-events: none;
   position: fixed;
   left: 0;
@@ -297,8 +299,8 @@ export default {
     background-color: #212123;
     border-radius: 32px;
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    // left: 50%;
+    // transform: translateX(-50%);
     bottom: 33px;
     padding: 0 8px 0 23px;
     font-family: AliMedium;
@@ -339,6 +341,19 @@ export default {
       img {
         margin-right: 4px;
         vertical-align: middle;
+      }
+    }
+  }
+}
+@media screen and (max-width: 683px) {
+  .el-menu-demo {
+    padding: 0px 16px; /*13.5px*/
+    .el-menu-item {
+      padding: 0 16px;
+      .item-img {
+        width: 24px;
+        height: 24px;
+        margin-right: 1.5px;
       }
     }
   }

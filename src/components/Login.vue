@@ -129,21 +129,24 @@ export default {
 
 <style lang="scss" scoped>
 .login-container {
-  position: absolute;
-  left: 0;
-  top: 0;
+  // position: absolute;
+  // left: 0;
+  // top: 0;
+  display: flex;
+  align-items: center;
   width: 100%;
+  // height: 100vh;
   height: 100%;
   padding: 24px 0 24px 24px;
   box-sizing: border-box;
   background: #efefef;
   .login-left {
-    float: left;
+    // float: left;
     width: 924px;
     margin-right: 12px;
   }
   .login-right {
-    float: right;
+    // float: right;
     width: calc(100% - 936px);
     height: 100%;
     display: flex;
