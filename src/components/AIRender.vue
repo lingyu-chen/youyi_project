@@ -1,7 +1,13 @@
 <template>
 
 	<div class="container">
-		<div class="left-container" ref="threeContainer">
+		<div class="left-container" ref="threeContainer" @keydown.delete="deleteModel" tabindex="-1">
+			<div class="loading-container" v-if="isGenerating||isFinished">
+				<div class="loader" v-if="isGenerating"><i class="el-icon-loading"></i></div>
+				<img class="result-picture" v-if="isFinished" :src="resultUrl" alt="">
+
+				<button class="cancel-task-but" @click="releaseResult()">×取&nbsp;&nbsp;消</button>
+			</div>
 			<div class="tool-box-container">
 				<div class="tool-icon-outer">
 					<img class="tool-icon-inner" src="@/assets/tool-box-icons/upload.png" alt="">
@@ -30,7 +36,7 @@
 		</div>
 		<div class="right-container">
 			<h1 class="option-title">Prompt 提示词</h1>
-			<textarea class="prompt-input"></textarea>
+			<textarea class="prompt-input" v-model="prompts"></textarea>
 			<div class="separator"></div>
 			<div class="ai-rate-container">
 				<h1 class="option-title">AI 影响率</h1>
@@ -45,8 +51,15 @@
 				placeholder="请选择"
 				style="color: #ff0000"
 				:popper-append-to-body="false"
-				:value="styleList"
-				class="style-list-select">
+				v-model="chosenStyle"
+				class="style-list-select"
+			>
+				<el-option
+					v-for="item in styleList"
+					:key="item.sid"
+					:label="item.name"
+					:value="item.sid"
+				></el-option>
 			</el-select>
 			<div class="separator"></div>
 			<h1 class="option-title">参考图片</h1>
@@ -65,8 +78,9 @@
 			<div class="history-list-container">
 
 			</div>
-			<button class="generate-but" :class="{'generate-but-generating':isGenerating}">AI
-				生成方案{{ isGenerating ? "..." : "" }}
+			<button class="generate-but" :class="{'generate-but-generating':isGenerating}" @click="generateStart()"
+			        :disabled="isGenerating||isFinished">AI
+				生成方案{{ isGenerating ? "中..." : "" }}
 			</button>
 		</div>
 	</div>
@@ -76,17 +90,33 @@ import * as THREE from 'three';
 import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
 import {TransformControls} from "three/addons/controls/TransformControls.js";
+import {
+	cancelTask,
+	fileFinish, fileRelease, findTaskStatus,
+	getProjectDetail,
+	getStyleList,
+	projectSave,
+	taskGenerate,
+	uploadFile,
+	uploadModelFile
+} from "@/api";
+import {GLTFExporter} from 'three/examples/jsm/exporters/GLTFExporter.js';
+
+
+/* Three.JS Scene Properties Start */
 
 const loader = new GLTFLoader();
 const scene = new THREE.Scene();
-const models = [];
-const pointLight = new THREE.PointLight(0xFFFFFF, 20, 30);
+let models = [];
+const light = new THREE.PointLight(0xFFFFFF, 5, 50);
 const ambientLight = new THREE.AmbientLight(0x404040, 1);
 const gridHelper = new THREE.GridHelper(50, 50);
 let camera;
 let orbitControls;
 let transformControls;
-const renderer = new THREE.WebGLRenderer();
+const renderer = new THREE.WebGLRenderer({
+	preserveDrawingBuffer: true
+});
 const rayCaster = new THREE.Raycaster();
 const mouseVector = new THREE.Vector2();
 const customMaterial = new THREE.MeshStandardMaterial({
@@ -96,87 +126,148 @@ const customMaterial = new THREE.MeshStandardMaterial({
 
 function myRender() {
 	let cameraLocation = camera.position.clone();
-	pointLight.position.set(cameraLocation.x, cameraLocation.y, cameraLocation.z);
+	light.position.set(cameraLocation.x, cameraLocation.y + 20, cameraLocation.z);
 	renderer.render(scene, camera);
 }
+
+function clickModel(width, height, event, vm) {
+	// 计算鼠标位置 (0到1)
+	mouseVector.x = (event.clientX / width) * 2 - 1;
+	mouseVector.y = -(event.clientY / height) * 2 + 1;
+
+	// 更新 Raycaster
+	rayCaster.setFromCamera(mouseVector, camera);
+
+	// 计算与模型的交叉点
+	const intersects = rayCaster.intersectObjects(models);
+
+	if (intersects.length > 0) {
+		// 如果有交互，获取第一个模型
+		const selectedModel = intersects[0].object;
+		transformControls.attach(selectedModel);
+		vm.selectedModel = selectedModel;
+		myRender();
+	}
+}
+
+/* Three.JS Scene Properties End */
 
 export default {
 	name: "AIRender",
 	data() {
 		return {
 			aiRate: 90,
-			content: "hello",
+			prompts: '',
+			projectId: this.$route.query.id,
+			projectName: "",
+			type: this.$route.query.type,
 			keepStyle: false,
-			isGenerating: false,
 			transformMode: 'translate',
 			selectedModel: null,
-			styleList: []
+			styleList: [],
+			chosenStyle: 1,
+			status: 'EDIT', // EDIT RUNNING FINISHED
+			checkTimer: null,
+			resultUrl: '',
+			runningTaskId: 0
 		}
 	},
+
 	mounted() {
-		const vm = this;
-		loader.load('https://compare-patch1-1258190691.cos.ap-shanghai.myqcloud.com/youyi_resources/models/chair_demo.glb', function (glb) {
-			const loadedModel = glb.scene;
-			loadedModel.traverse(function (child) {
-				if (child.isMesh) {
-					child.material = customMaterial;
-				}
-			})
-			const width = vm.$refs.threeContainer.clientWidth, height = vm.$refs.threeContainer.clientHeight;
-			camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-			models.push(loadedModel);
-			scene.add(loadedModel);
-			console.log(glb.scene);
-			pointLight.position.set(0, 10, 0);
-			camera.position.set(0, 5, 5)
-			scene.add(pointLight);
-			scene.add(ambientLight);
-			scene.add(gridHelper);
-			renderer.setSize(width, height);
-			renderer.setClearColor(0xD4D4D4, 1)
-			vm.$refs.threeContainer.appendChild(renderer.domElement);
-			orbitControls = new OrbitControls(camera, renderer.domElement);
-			orbitControls.addEventListener('change', function () {
-				myRender();
-			})
-			transformControls = new TransformControls(camera, renderer.domElement);
-			transformControls.attach(loadedModel);
-			vm.selectedModel = loadedModel;
-			transformControls.setMode(vm.transformMode);
-			transformControls.addEventListener('change', function () {
-				myRender();
-			})
-			transformControls.addEventListener('dragging-changed', (e) => {
-				orbitControls.enabled = !e.value;
-			})
-			scene.add(transformControls);
-			myRender();
-			window.addEventListener('resize', () => {
-				renderer.setSize(vm.$refs.threeContainer.clientWidth, vm.$refs.threeContainer.clientHeight);
-				myRender();
-			})
-			window.addEventListener('click', (event) => {
-				// 计算鼠标位置 (0到1)
-				mouseVector.x = (event.clientX / width) * 2 - 1;
-				mouseVector.y = -(event.clientY / height) * 2 + 1;
+		getStyleList().then(
+			(response) => {
+				this.styleList = response.data.styles;
+			},
+			(error) => {
+				console.log("request style list error:", error);
+			}
+		)
+		this.getProjectDetail();
 
-				// 更新 Raycaster
-				rayCaster.setFromCamera(mouseVector, camera);
-
-				// 计算与模型的交叉点
-				const intersects = rayCaster.intersectObjects(models);
-
-				if (intersects.length > 0) {
-					// 如果有交互，获取第一个模型
-					const selectedModel = intersects[0].object;
-					transformControls.attach(selectedModel);
-					vm.selectedModel = selectedModel;
-					myRender();
-				}
-			});
-		})
+	},
+	computed: {
+		isGenerating: function () {
+			return this.status === 'RUNNING';
+		},
+		isFinished: function () {
+			return this.status === 'FINISHED';
+		}
 	},
 	methods: {
+		loadModel3D: function (url) {
+			const vm = this;
+			if (url == null || url === '') {
+				url = "https://compare-patch1-1258190691.cos.ap-shanghai.myqcloud.com/youyi_resources/models/chair_demo.glb";
+			}
+			loader.load(url, function (glb) {
+				const loadedModel = glb.scene;
+				loadedModel.traverse(function (child) {
+					if (child.isMesh) {
+						child.material = customMaterial;
+					}
+				})
+				const width = vm.$refs.threeContainer.clientWidth, height = vm.$refs.threeContainer.clientHeight;
+				camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+				models.push(loadedModel);
+				scene.add(loadedModel);
+				light.position.set(0, 10, 0);
+				camera.position.set(0, 5, 5)
+				scene.add(light);
+				scene.add(ambientLight);
+				scene.add(gridHelper);
+				renderer.setSize(width, height);
+				renderer.setClearColor(0xD4D4D4, 1)
+				vm.$refs.threeContainer.appendChild(renderer.domElement);
+				orbitControls = new OrbitControls(camera, renderer.domElement);
+				orbitControls.addEventListener('change', function () {
+					myRender();
+				})
+
+				transformControls = new TransformControls(camera, renderer.domElement);
+				transformControls.attach(loadedModel);
+				vm.selectedModel = loadedModel;
+				transformControls.setMode(vm.transformMode);
+				transformControls.addEventListener('change', function () {
+					myRender();
+				})
+				transformControls.addEventListener('dragging-changed', (e) => {
+					orbitControls.enabled = !e.value;
+				})
+				scene.add(transformControls);
+				myRender();
+				orbitControls.addEventListener('start', function () {
+					window.onclick = null;
+				})
+				orbitControls.addEventListener('end', function () {
+					window.onclick = function (e) {
+						clickModel(width, height, e, vm);
+					}
+				})
+				window.addEventListener('resize', () => {
+					renderer.setSize(vm.$refs.threeContainer.clientWidth, vm.$refs.threeContainer.clientHeight);
+					myRender();
+				})
+				window.addEventListener('click', (event) => {
+					clickModel(width, height, event, vm)
+				});
+			})
+		},
+		getProjectDetail: async function () {
+			const vm = this;
+			await getProjectDetail(this.$route.query.id).then(
+				(response) => {
+					vm.projectName = response.data.name;
+					vm.aiRate = parseInt(Math.min(100.0, Math.abs(response.data.aiRate * 100)).toFixed(0));
+					vm.prompts = response.data.prompt == null ? '' : response.data.prompt.join(',');
+					vm.chosenStyle = response.data.style;
+					let link = response.data.model == null ? null : response.data.model.link;
+					vm.loadModel3D(link);
+				},
+				(error) => {
+					console.log("request project detail error:", error);
+				}
+			)
+		},
 		updateControlMode: function (mode) {
 			if (mode === this.transformMode && this.selectedModel != null) {
 				transformControls.detach(this.selectedModel);
@@ -189,7 +280,221 @@ export default {
 		},
 		isToolActive: function (mode) {
 			return mode === this.transformMode && this.selectedModel != null;
+		},
+		generateStart: async function () {
+			const vm = this;
+			const renderedPicBlob = this.getRenderedPic();
+			this.status = 'RUNNING';
+			projectSave({
+				id: this.projectId,
+				name: this.projectName,
+				prompt: this.prompts.split(','),
+				aiRate: this.aiRate / 100.0,
+				style: this.chosenStyle,
+				modified: true,
+				randomSeed: this.keepStyle ? this.projectId : new Date().getTime()
+			}).then(
+				async (response) => {
+					let saveSuccess = false;
+					const promises = response.data.uploadParams.map(async (element) => {
+						const tag = element.tag;
+						const fileId = element.fileId;
+						const hostUrl = element.hostUrl;
+						if (tag === 'canvas') {
+							return uploadFile(hostUrl, vm.base64ToBlob({
+								b64data: renderedPicBlob,
+								contentType: "image/png"
+							})).then(async (result) => {
+								console.log(result);
+								await vm.fileFinishFunc(tag, fileId, this.projectId);
+								saveSuccess = true;
+							}, (error) => {
+								console.log(error);
+								saveSuccess = false;
+							});
+						} else {
+							return this.getModelBlob().then(blob => {
+								uploadModelFile(hostUrl, blob).then(async (result) => {
+									console.log(result);
+									await vm.fileFinishFunc(tag, fileId, this.projectId);
+									saveSuccess = true;
+								}, (error) => {
+									console.log(error);
+									saveSuccess = false;
+								}).catch(error => {
+									console.log(error);
+								});
+							})
+						}
+					})
+					await Promise.all(promises).then(async () => {
+						if (saveSuccess) {
+							await taskGenerate({
+								projectId: vm.projectId,
+							}).then((result) => {
+								vm.taskCheckStart(result.data.tid);
+								vm.runningTaskId = result.data.tid;
+							}, (error) => {
+								console.log(error);
+								vm.setError();
+							})
+						} else {
+							vm.setError();
+						}
+					})
+
+
+				},
+				(error) => {
+					console.log("上传文件失败", error)
+					vm.setError();
+				}
+			)
+		},
+		taskCheckStart: function (tid) {
+			const vm = this;
+			this.checkTimer = setInterval(function () {
+				findTaskStatus(tid).then(
+					(response) => {
+						let task = response.data.results[0];
+						if (task.status === 'FINISHED') {
+							vm.resultUrl = task.result.link;
+							vm.status = 'FINISHED';
+							console.log('vm status is ' + vm.status + 'when finished.')
+							clearInterval(vm.checkTimer);
+						} else if (task.status === 'ERROR') {
+							vm.status = 'ERROR';
+							clearInterval(vm.checkTimer)
+						}
+					},
+					(error) => {
+						console.log(error);
+						vm.setError();
+						clearInterval(vm.checkTimer);
+					}
+				)
+			}, 1200)
+		},
+		base64ToBlob({b64data = "", contentType = "", sliceSize = 512} = {}) {
+			// 使用 atob() 方法将数据解码
+			const b64dataformat = b64data.substring("data:image/png;base64,".length);
+			let byteCharacters = atob(b64dataformat);
+			let byteArrays = [];
+			for (
+				let offset = 0;
+				offset < byteCharacters.length;
+				offset += sliceSize
+			) {
+				let slice = byteCharacters.slice(offset, offset + sliceSize);
+				let byteNumbers = [];
+				for (let i = 0; i < slice.length; i++) {
+					byteNumbers.push(slice.charCodeAt(i));
+				}
+				// 8 位无符号整数值的类型化数组。内容将初始化为 0。
+				// 如果无法分配请求数目的字节，则将引发异常。
+				byteArrays.push(new Uint8Array(byteNumbers));
+			}
+			return new Blob(byteArrays, {
+				type: contentType,
+			});
 		}
+		,
+		getRenderedPic: function () {
+			transformControls.detach(this.selectedModel);
+			this.selectedModel = null;
+			scene.remove(gridHelper);
+			myRender();
+			const originCanvas = renderer.domElement;
+			const tmpCanvas = document.createElement("canvas");
+			const tmpContext = tmpCanvas.getContext('2d');
+			const width = originCanvas.width, height = originCanvas.height;
+			const size = Math.min(width, height);
+			const xOffset = (width - size) / 2;
+			tmpCanvas.width = 512;
+			tmpCanvas.height = 512;
+			tmpContext.drawImage(originCanvas, xOffset, 0, size, size, 0, 0, 512, 512);
+			const res = tmpCanvas.toDataURL('image/png');
+			scene.add(gridHelper);
+			myRender();
+			return res;
+		}
+		,
+		getModelBlob: function () {
+			return new Promise((resolve, reject) => {
+				const exporter = new GLTFExporter();
+				scene.remove(light);
+				scene.remove(ambientLight);
+				scene.remove(transformControls);
+				scene.remove(gridHelper);
+				exporter.parse(scene, async function (result) {
+						if (result instanceof ArrayBuffer) {
+							const modelBlob = await new Blob([result], {type: "model/gltf-binary"});
+							resolve(modelBlob);
+							scene.add(light);
+							scene.add(ambientLight);
+							scene.add(transformControls);
+							scene.add(gridHelper);
+							myRender();
+						}
+					}, function (err) {
+						console.log(err);
+						reject(err);
+						scene.add(light);
+						scene.add(ambientLight);
+						scene.add(transformControls);
+						myRender();
+					},
+					{
+						binary: true,
+					});
+			})
+		}
+		,
+		fileFinishFunc: async function (tag, fileId, projectId) {
+			return fileFinish({
+				tag: tag,
+				projectId: projectId,
+				fileId: fileId,
+				finish: true
+			}).then((result) => {
+					console.log(tag + " file finished " + result.data.status);
+				}, (error) => {
+					console.log(error);
+				}
+			)
+		},
+		setError() {
+			this.status = 'ERROR';
+		},
+		releaseResult: function () {
+			this.status = 'EDIT';
+			if (this.status === 'RUNNING') {
+				cancelTask(this.runningTaskId).then(
+					(response) => {
+						console.log(response.data.tid + " cancelled");
+					}, (error) => {
+						console.log(error);
+					})
+			} else if (this.status === 'FINISHED') {
+				fileRelease({projectId: this.projectId}).then(
+					(result) => {
+						console.log("release task " + result.data.status);
+					},
+					(error) => {
+						console.log(error);
+					})
+			}
+		},
+		deleteModel: function () {
+			if (this.selectedModel != null) {
+				transformControls.detach(this.selectedModel);
+				scene.remove(this.selectedModel);
+				models = models.filter((item) => item !== this.selectedModel);
+				this.selectedModel = null;
+				myRender();
+			}
+		}
+
 	}
 }
 </script>
@@ -207,12 +512,67 @@ export default {
 .left-container {
 	position: absolute;
 	left: 0;
-	right: 336px;
+	right: 368px;
 	top: 0;
 	bottom: 0;
 	margin: auto;
 	background-color: transparent;
 }
+
+.loading-container {
+	position: absolute;
+	z-index: 5;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(217, 217, 217, 0.75);
+}
+
+.result-picture {
+	display: block;
+	position: absolute;
+	width: 512px;
+	height: 512px;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+}
+
+.loader {
+	width: 211px;
+	height: 211px;
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	right: 0;
+	top: 0;
+	margin: auto;
+	font-size: 168px;
+}
+
+.cancel-task-but {
+	position: absolute;
+	bottom: 40px;
+	left: 0;
+	right: 0;
+	margin: auto;
+	width: 154px;
+	height: 48px;
+	border: 0;
+	color: white;
+	background-color: #2400ff;
+	border-radius: 50px;
+	font-family: AliMedium, serif;
+	font-size: 20px;
+	cursor: pointer;
+}
+
+.cancel-task-but::first-letter {
+	font-size: 25px;
+	margin-right: 7px;
+}
+
 
 .tool-box-container {
 	position: absolute;
