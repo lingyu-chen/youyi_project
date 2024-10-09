@@ -584,8 +584,7 @@ export default {
 </script>
  
 <style scoped lang="scss">
-// @import '../assets/style.css';
-/deep/.el-select {
+::v-deep.el-select {
   right: 8px;
   bottom: 24px;
   position: absolute;
@@ -608,7 +607,7 @@ export default {
     }
   }
 }
-/deep/.el-select-dropdown {
+::v-deep.el-select-dropdown {
   background: #59595a !important;
   .el-scrollbar {
     background: #59595a !important;
@@ -712,7 +711,7 @@ export default {
   color: blue;
   background-color: #f00;
 }
-/deep/.icon-icon-paint {
+::v-deep.icon-icon-paint {
   width: 24px;
   height: 24px;
   color: #d34da2;

@@ -174,20 +174,20 @@ export default {
       }
       .demo-ruleForm {
         margin-top: 32px;
-        /deep/.el-form-item__label {
+        ::v-deep.el-form-item__label {
           padding: 0;
           line-height: 22px;
           margin-bottom: 8px;
           font-family: AliBold;
           font-size: 16px;
         }
-        /deep/.el-input__inner {
+        ::v-deep.el-input__inner {
           width: 480px !important;
           height: 48px !important;
           border: 1px solid #5c5c5c;
           border-radius: 8px !important;
         }
-        /deep/.el-input__inner::placeholder {
+        ::v-deep.el-input__inner::placeholder {
           color: #535353;
           font-family: AliMedium !important;
           font-size: 16px !important;

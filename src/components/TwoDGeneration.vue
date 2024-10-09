@@ -1622,7 +1622,7 @@ export default {
       }
     }
 
-    /deep/ .canvas-container {
+    ::v-deep .canvas-container {
       // width: 1322px;
       // height: 734px;
       position: relative;
@@ -1634,7 +1634,7 @@ export default {
       // margin: 75px 115px 0 115px;
     }
 
-    /deep/ .lower-canvas {
+    ::v-deep .lower-canvas {
       margin: 0px;
     }
 
@@ -1732,7 +1732,7 @@ export default {
             line-height: 48px;
             z-index: 998;
             margin-left: 8px;
-            /deep/.el-popover--plain {
+            ::v-deep.el-popover--plain {
               padding: 18px 20px 10px !important;
             }
 
@@ -1864,7 +1864,7 @@ export default {
         }
 
         //形状绘画部分
-        /deep/ .el-select {
+        ::v-deep .el-select {
           right: 8px;
           bottom: 24px;
           position: absolute;
@@ -1891,7 +1891,7 @@ export default {
           }
         }
 
-        /deep/ .el-select-dropdown {
+        ::v-deep .el-select-dropdown {
           background: #59595a !important;
           border: 0;
 
@@ -2057,7 +2057,7 @@ export default {
       font-size: 14px;
     }
 
-    /deep/ .el-textarea__inner {
+    ::v-deep .el-textarea__inner {
       width: 336px;
       height: 131px;
       border-radius: 8px;
@@ -2070,7 +2070,7 @@ export default {
       color: #b2b2b2;
     }
 
-    /deep/ .el-textarea__inner::placeholder {
+    ::v-deep .el-textarea__inner::placeholder {
       font-size: 12px;
       color: #b2b2b2; /* 修改为需要的颜色 */
     }
@@ -2101,7 +2101,7 @@ export default {
         height: 36px;
         margin-top: 8px;
 
-        /deep/ .el-input__inner {
+        ::v-deep .el-input__inner {
           background-color: #242425;
           border: 0px;
           border-radius: 8px;
@@ -2109,14 +2109,14 @@ export default {
           font-family: AliRegular;
         }
 
-        /deep/ .el-input__inner::placeholder {
+        ::v-deep .el-input__inner::placeholder {
           font-size: 12px;
           font-family: AliRegular;
           color: #fff;
         }
 
         //修改单个的选项的样式
-        // /deep/ .el-select-dropdown__item{
+        // ::v-deep .el-select-dropdown__item{
         //   background-color: #242425;
         //   color:#fff;
         // }
@@ -2137,7 +2137,7 @@ export default {
         font-size: 12px;
         font-family: AliRegular;
 
-        /deep/ .el-upload-dragger {
+        ::v-deep .el-upload-dragger {
           display: flex;
           align-items: center; /* 垂直居中 */
           justify-content: center;
@@ -2168,7 +2168,7 @@ export default {
         .duration-switch:hover {
           box-shadow: 0 0px 20px 0px rgba(236, 236, 236, 0.4);
         }
-        /deep/.el-switch__core {
+        ::v-deep.el-switch__core {
           width: 53px !important;
           height: 26px;
           border-radius: 13px;
@@ -2179,7 +2179,7 @@ export default {
             height: 21px;
           }
         }
-        /deep/.el-switch.is-checked .el-switch__core::after {
+        ::v-deep.el-switch.is-checked .el-switch__core::after {
           margin-left: 26px;
           &:after {
             left: 100%;

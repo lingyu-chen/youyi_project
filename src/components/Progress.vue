@@ -75,7 +75,7 @@
 </script>
 <style lang="scss" scoped>
 .block{
-    /deep/.el-slider__runway{
+    ::v-deep.el-slider__runway{
         height: 4px;
         background-color: #242425;
         .el-slider__bar{
@@ -93,7 +93,7 @@
             }
     }
 }
-    /deep/.el-progress-bar__outer{
+    ::v-deep.el-progress-bar__outer{
         width: 298px;
         height: 4px !important;
         background-color: #242425 !important;
