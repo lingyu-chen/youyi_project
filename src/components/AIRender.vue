@@ -697,7 +697,7 @@ export default {
 
 }
 
-/deep/ .el-slider__runway {
+::v-deep .el-slider__runway {
 	height: 4px;
 	background-color: #242425;
 
@@ -718,7 +718,7 @@ export default {
 	}
 }
 
-/deep/ .el-input__inner {
+::v-deep .el-input__inner {
 	background-color: #242425;
 	border: 0;
 	border-radius: 8px;
@@ -726,7 +726,7 @@ export default {
 	font-family: AliRegular, sans-serif;
 }
 
-/deep/ .el-input__inner::placeholder {
+::v-deep .el-input__inner::placeholder {
 	font-size: 12px;
 	font-family: AliRegular, sans-serif;
 	color: #fff;

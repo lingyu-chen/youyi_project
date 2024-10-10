@@ -47,7 +47,7 @@ export default {
 </script>
 <style lang="scss" scoped>
 .block {
-  /deep/.el-slider__runway {
+  ::v-deep.el-slider__runway {
     height: 4px;
     background-color: #242425;
     .el-slider__bar {
@@ -64,8 +64,42 @@ export default {
       cursor: pointer;
     }
   }
+  .el-slider__button-wrapper {
+    cursor: pointer;
+  }
+  .el-slider__button {
+    background-color: #2400ff;
+    border: 0px;
+    cursor: pointer;
+  }
 }
+
 /deep/.el-progress-bar__outer {
+  width: 298px;
+  height: 4px !important;
+  background-color: #242425 !important;
+  .el-progress-bar__inner {
+    transition: width 0s ease;
+  }
+}
+.custom-progress {
+  position: relative;
+  width: 298px;
+  margin-top: 16px;
+  .progress-round {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateY(-50%);
+    // transform: translateX(-50%);
+    width: 16px;
+    height: 16px;
+    border-radius: 50% 50%;
+    background-color: #2400ff;
+    cursor: pointer;
+  }
+}
+::v-deep.el-progress-bar__outer {
   width: 298px;
   height: 4px !important;
   background-color: #242425 !important;

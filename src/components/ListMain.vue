@@ -383,7 +383,7 @@ export default {
       width: 288px;
       height: 162px;
 
-      /deep/ .el-progress {
+      ::v-deep .el-progress {
         margin-top: 28px;
         width: 96px !important;
         height: 96px !important;
