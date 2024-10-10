@@ -56,7 +56,7 @@
           <div class="text-container">
             <div class="text-content">
               <span class="text-common project-name"
-                >{{ item.name }}{{ item.type }}</span
+                >{{ item.name }}&nbsp;&nbsp;--{{ item.type }}</span
               >
               <span class="text-common edit-time"
                 >编辑于 {{ modifyTime(item.modifyTime) }}以前</span
@@ -161,15 +161,15 @@ export default {
           path: "/home/generation",
           query: { type: type, id: id, name: name },
         });
-      }else if(type==='airender'){
-		  this.$router.push({
-			  path:"/home/airender",
-			  query:{
-				  type: type,
-				  id: id,
-				  name: name
-			  }
-		  })
+      } else if (type === "airender") {
+        this.$router.push({
+          path: "/home/airender",
+          query: {
+            type: type,
+            id: id,
+            name: name,
+          },
+        });
       }
     },
     modifyTime(time) {
@@ -442,6 +442,7 @@ export default {
       height: 56px;
       line-height: 56px;
       display: flex;
+      justify-content: space-between;
 
       .text-content {
         width: 384px;

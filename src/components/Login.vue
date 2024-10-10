@@ -36,6 +36,7 @@
               :validate-event="false"
               placeholder="请输入您的密码"
               autocomplete="off"
+              @keyup.enter.native="submitForm('ruleForm')"
             ></el-input>
           </el-form-item>
           <!-- <el-form-item label="确认密码" prop="checkPass">
@@ -95,6 +96,7 @@ export default {
   },
   methods: {
     submitForm(formName) {
+      console.log("进行回车提交");
       this.$refs[formName].validate((valid) => {
         if (valid) {
           const data = {
