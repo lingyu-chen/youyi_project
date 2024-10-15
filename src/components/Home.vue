@@ -31,7 +31,7 @@
           </div>
         </div>
       </el-header>
-      <div class="line"></div>
+      <!-- <div class="line"></div> -->
       <el-main ref="mainHeight">
         <router-view><Index></Index></router-view>
         <!-- <TwoDToThreeD></TwoDToThreeD> -->
@@ -228,6 +228,7 @@ export default {
   top: 84px;
   bottom: 0;
   width: 100%;
+  flex-grow: 1;
   padding: 0;
   //overflow: hidden; /* 防止el-main出现滚动条 */
 }
@@ -238,6 +239,7 @@ body > .el-container {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .el-container:nth-child(5) .el-aside,

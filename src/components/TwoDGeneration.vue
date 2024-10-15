@@ -1,232 +1,244 @@
 <template>
-  <div class="twoDtothreeD-container">
+  <div class="twoDtothreeD-container" ref="fullscreenContainer">
     <div class="to-left">
-      <canvas
-        id="c"
-        ref="tutorial"
-        :width="width"
-        :height="height"
-        class="panel-white"
-      >
-      </canvas>
-      <div class="tool-navigation-container">
-        <div class="tool-cancel-confirm" v-if="isConfirm">
-          <div class="tool-cancel" @click="cancelGeneration()">
-            <i class="el-icon-close" style="margin-right: 8px"></i>
-            <span>取消</span>
+      <div class="left-canvas-toolnavigation">
+        <button
+          type="button"
+          @click="toggle"
+          style="position: absolute,z-index:999"
+        >
+          Fullscreen
+        </button>
+        <canvas
+          id="c"
+          ref="tutorial"
+          :width="width"
+          :height="height"
+          class="panel-white"
+        >
+        </canvas>
+        <div class="tool-navigation-container">
+          <div class="tool-cancel-confirm" v-if="isConfirm">
+            <div class="tool-cancel" @click="cancelGeneration()">
+              <i class="el-icon-close" style="margin-right: 8px"></i>
+              <span>取消</span>
+            </div>
+            <div class="tool-confirm" @click="confirmGeneration()">确认</div>
           </div>
-          <div class="tool-confirm" @click="confirmGeneration()">确认</div>
-        </div>
-        <div class="tool-navigation" v-show="!isAmongGeneration" v-else>
-          <div class="undo-redo">
-            <img
-              src="../assets/undo.png"
-              @click="back()"
-              alt=""
-              style="margin-right: 16px"
-            />
-            <img src="../assets/redo.png" @click="restore()" alt="" />
-          </div>
-          <div class="line-right"></div>
-          <div class="default-selected" @click="cancelAllOperations">
-            <div
-              class="hover-selected"
-              :class="{
-                'hover-selected-selected': clickStatus == 0,
-              }"
-            >
-              <img src="../assets/selected.png" alt="" class="mouse-selected" />
-            </div>
-          </div>
-          <div class="line-right"></div>
-          <div class="eraser-paint-graph">
-            <div
-              class="color-selected"
-              :class="{ 'color-selected-selected': colorPickerStatus == 1 }"
-            >
-              <!-- <div class="color-picker"><span></span></div> -->
-              <div style="display: inline-block; position: relative">
-                <el-popover
-                  @hide="handleBlur"
-                  placement="bottom"
-                  width="24px"
-                  trigger="click"
-                  content="这是一段内容,这是一段内容,这是一段内容,这是一段内容。"
-                >
-                  <el-button
-                    slot="reference"
-                    class="color-box"
-                    @click="colorPickerStatus = 1"
-                    :style="{
-                      backgroundColor: colorPicker,
-                      padding: '0px',
-                      position: 'absolute',
-                      left: '0',
-                      top: '0',
-                      zIndex: 999,
-                      opacity: '0',
-                      width: '24px',
-                      height: '24px',
-                    }"
-                  >
-                    <div
-                      style="
-                        width: 100%;
-                        height: 100%;
-                        border: 2px solid gainsboro;
-                      "
-                    >
-                      <!-- <i  style="font-size: 25px; font-weight: lighter;line-height: 34px; color: white" class="el-icon-arrow-down icon">
-											</i> -->
-                    </div>
-                  </el-button>
-                  <sketch-picker
-                    v-model="colorPicker"
-                    @input="colorValueChange"
-                  />
-                  <el-slider
-                    v-model="paintWidth"
-                    style="margintop: 5px"
-                  ></el-slider>
-                </el-popover>
-                <div
-                  class="color-picker"
-                  :style="{ backgroundColor: colorPicker }"
-                >
-                  <span></span>
-                </div>
-                <!-- <span class="icon-icon-paint" style="marginRight: 16px;" ref="iconPaint"></span> -->
-              </div>
-            </div>
-            <div
-              class="paint-selected"
-              :class="{
-                'hover-selected-selected': clickStatus == 1,
-              }"
-            >
-              <img src="../assets/paint.png" alt="" @click="startPaint()" />
-            </div>
-            <div
-              class="paint-selected"
-              :class="{
-                'hover-selected-selected': clickStatus == 3,
-              }"
-            >
-              <img src="../assets/eraser.png" alt="" @click="startEraser()" />
-            </div>
-            <!-- <div class="alpha-selected">
-						  <img src="../assets/alpha.png" alt="">
-						  <img src="../assets/selectAlpha.png" alt="">
-						</div> -->
-            <div
-              class="alpha-selected"
-              :class="{ 'alpha-selected-selected': clickStatus == 2 }"
-              @click="selectAlphaDefaultRect"
-            >
+          <div class="tool-navigation" v-show="!isAmongGeneration" v-else>
+            <div class="undo-redo">
               <img
-                src="../assets/alpha.png"
-                alt=""
-                v-show="this.alphaValue == 'r' || this.alphaValue == ''"
-              />
-              <img
-                src="../assets/ellipse.png"
-                alt=""
-                v-show="this.alphaValue == 'c'"
-              />
-              <img
-                src="../assets/line.png"
-                alt=""
-                v-show="this.alphaValue == 'l'"
-              />
-              <el-select
-                :popper-append-to-body="false"
-                :teleported="false"
-                v-model="alphaValue"
-                placeholder=""
-                style="opacity: 1; width: 24px; height: 24px"
-              >
-                <el-option
-                  v-for="item in alphaOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                >
-                  <img
-                    :src="item.src"
-                    alt=""
-                    style="
-                      width: 16px;
-                      height: 16px;
-                      vertical-align: text-bottom;
-                    "
-                    class="alpha-img"
-                  />
-                  {{ item.label }}
-                </el-option>
-              </el-select>
-              <img
-                src="../assets/selectAlpha.png"
-                alt=""
-                class="select-alpha-icon"
-              />
-            </div>
-          </div>
-          <div class="line-right"></div>
-          <div class="upload-download">
-            <div style="display: inline-block; position: relative">
-              <img
-                src="../assets/toolupload.png"
+                src="../assets/undo.png"
+                @click="back()"
                 alt=""
                 style="margin-right: 16px"
               />
-              <el-upload
-                style="
-                  display: block;
-                  width: 24px;
-                  height: 24px;
-                  position: absolute;
-                  left: 0;
-                  top: 0;
-                  z-index: 999;
-                "
-                class="upload-demo"
-                action="#"
-                :before-upload="handleBeforeUpload"
-                :on-preview="handlePreview"
-                :on-remove="handleRemove"
-                multiple
-                :limit="2"
-                :on-exceed="handleExceed"
-                :file-list="fileList"
-                accept=".jpg,.jpeg,.png"
-                list-type="picture"
+              <img src="../assets/redo.png" @click="restore()" alt="" />
+            </div>
+            <div class="line-right"></div>
+            <div class="default-selected" @click="cancelAllOperations">
+              <div
+                class="hover-selected"
+                :class="{
+                  'hover-selected-selected': clickStatus == 0,
+                }"
               >
-                <el-button
-                  size="small"
-                  type="primary"
+                <img
+                  src="../assets/selected.png"
+                  alt=""
+                  class="mouse-selected"
+                />
+              </div>
+            </div>
+            <div class="line-right"></div>
+            <div class="eraser-paint-graph">
+              <div
+                class="color-selected"
+                :class="{ 'color-selected-selected': colorPickerStatus == 1 }"
+              >
+                <!-- <div class="color-picker"><span></span></div> -->
+                <div style="display: inline-block; position: relative">
+                  <el-popover
+                    @hide="handleBlur"
+                    placement="bottom"
+                    width="24px"
+                    trigger="click"
+                    content="这是一段内容,这是一段内容,这是一段内容,这是一段内容。"
+                  >
+                    <el-button
+                      slot="reference"
+                      class="color-box"
+                      @click="colorPickerStatus = 1"
+                      :style="{
+                        backgroundColor: colorPicker,
+                        padding: '0px',
+                        position: 'absolute',
+                        left: '0',
+                        top: '0',
+                        zIndex: 999,
+                        opacity: '0',
+                        width: '24px',
+                        height: '24px',
+                      }"
+                    >
+                      <div
+                        style="
+                          width: 100%;
+                          height: 100%;
+                          border: 2px solid gainsboro;
+                        "
+                      >
+                        <!-- <i  style="font-size: 25px; font-weight: lighter;line-height: 34px; color: white" class="el-icon-arrow-down icon">
+											</i> -->
+                      </div>
+                    </el-button>
+                    <sketch-picker
+                      v-model="colorPicker"
+                      @input="colorValueChange"
+                    />
+                    <el-slider
+                      v-model="paintWidth"
+                      style="margintop: 5px"
+                    ></el-slider>
+                  </el-popover>
+                  <div
+                    class="color-picker"
+                    :style="{ backgroundColor: colorPicker }"
+                  >
+                    <span></span>
+                  </div>
+                  <!-- <span class="icon-icon-paint" style="marginRight: 16px;" ref="iconPaint"></span> -->
+                </div>
+              </div>
+              <div
+                class="paint-selected"
+                :class="{
+                  'hover-selected-selected': clickStatus == 1,
+                }"
+              >
+                <img src="../assets/paint.png" alt="" @click="startPaint()" />
+              </div>
+              <div
+                class="paint-selected"
+                :class="{
+                  'hover-selected-selected': clickStatus == 3,
+                }"
+              >
+                <img src="../assets/eraser.png" alt="" @click="startEraser()" />
+              </div>
+              <!-- <div class="alpha-selected">
+						  <img src="../assets/alpha.png" alt="">
+						  <img src="../assets/selectAlpha.png" alt="">
+						</div> -->
+              <div
+                class="alpha-selected"
+                :class="{ 'alpha-selected-selected': clickStatus == 2 }"
+                @click="selectAlphaDefaultRect"
+              >
+                <img
+                  src="../assets/alpha.png"
+                  alt=""
+                  v-show="this.alphaValue == 'r' || this.alphaValue == ''"
+                />
+                <img
+                  src="../assets/ellipse.png"
+                  alt=""
+                  v-show="this.alphaValue == 'c'"
+                />
+                <img
+                  src="../assets/line.png"
+                  alt=""
+                  v-show="this.alphaValue == 'l'"
+                />
+                <el-select
+                  :popper-append-to-body="false"
+                  :teleported="false"
+                  v-model="alphaValue"
+                  placeholder=""
+                  style="opacity: 1; width: 24px; height: 24px"
+                >
+                  <el-option
+                    v-for="item in alphaOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  >
+                    <img
+                      :src="item.src"
+                      alt=""
+                      style="
+                        width: 16px;
+                        height: 16px;
+                        vertical-align: text-bottom;
+                      "
+                      class="alpha-img"
+                    />
+                    {{ item.label }}
+                  </el-option>
+                </el-select>
+                <img
+                  src="../assets/selectAlpha.png"
+                  alt=""
+                  class="select-alpha-icon"
+                />
+              </div>
+            </div>
+            <div class="line-right"></div>
+            <div class="upload-download">
+              <div style="display: inline-block; position: relative">
+                <img
+                  src="../assets/toolupload.png"
+                  alt=""
+                  style="margin-right: 16px"
+                />
+                <el-upload
                   style="
                     display: block;
                     width: 24px;
                     height: 24px;
-                    padding: 0;
-                    margin: 0;
-                    opacity: 0;
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    z-index: 999;
                   "
-                ></el-button>
-                <!-- <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div> -->
-              </el-upload>
-            </div>
+                  class="upload-demo"
+                  action="#"
+                  :before-upload="handleBeforeUpload"
+                  :on-preview="handlePreview"
+                  :on-remove="handleRemove"
+                  multiple
+                  :limit="2"
+                  :on-exceed="handleExceed"
+                  :file-list="fileList"
+                  accept=".jpg,.jpeg,.png"
+                  list-type="picture"
+                >
+                  <el-button
+                    size="small"
+                    type="primary"
+                    style="
+                      display: block;
+                      width: 24px;
+                      height: 24px;
+                      padding: 0;
+                      margin: 0;
+                      opacity: 0;
+                    "
+                  ></el-button>
+                  <!-- <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div> -->
+                </el-upload>
+              </div>
 
-            <img src="../assets/tooldownload.png" alt="" @click="save()" />
-          </div>
-          <div class="line-right"></div>
-          <div class="twoD-generation-container">
-            <div class="twoD-generation" style="cursor: not-allowed">
-              <img src="../assets/generationicon.png" alt="" />2D to 3D
+              <img src="../assets/tooldownload.png" alt="" @click="save()" />
+            </div>
+            <div class="line-right"></div>
+            <div class="twoD-generation-container">
+              <div class="twoD-generation" style="cursor: not-allowed">
+                <img src="../assets/generationicon.png" alt="" />2D to 3D
+              </div>
             </div>
           </div>
-        </div>
-        <!-- <el-select
+          <!-- <el-select
 				  v-model="shapeValue"
 				  placeholder="请选择"
 				  style="position: absolute; right: 128px"
@@ -239,6 +251,7 @@
 				  >
 				  </el-option>
 				</el-select> -->
+        </div>
       </div>
     </div>
     <div class="loading-mask" v-if="isAmongGeneration">
@@ -373,20 +386,21 @@ import EllipseAlpha from "../assets/ellipse.png";
 import LineAlpha from "../assets/line.png";
 
 import {
-	cancelTask,
-	fileFinish,
-	fileOverwrite,
-	fileRelease,
-	findTaskStatus,
-	getHistoryList,
-	getProjectDetail,
-	getStyleList,
-	projectSave,
-	taskGenerate,
-	uploadFile,
+  cancelTask,
+  fileFinish,
+  fileOverwrite,
+  fileRelease,
+  findTaskStatus,
+  getHistoryList,
+  getProjectDetail,
+  getStyleList,
+  projectSave,
+  taskGenerate,
+  uploadFile,
 } from "@/api";
-import {Sketch} from "vue-color";
-import {fabric} from "fabric-with-erasing";
+import { Sketch } from "vue-color";
+import { fabric } from "fabric-with-erasing";
+import { api as fullscreen } from "vue-fullscreen";
 //形状绘图
 import hotkeys from "hotkeys-js"; //判断热键值
 window.fabric = fabric;
@@ -439,6 +453,8 @@ export default {
   },
   data() {
     return {
+      fullscreen: false, //全屏状态
+      teleport: true, //如果为true， 进入全屏时目标元素会被移动到document.body下。这可以避免一些弹窗在全屏模式下看不到的问题。
       clickStatus: 0, // 0 框选状态
       // 1 画笔状态
       // 2 图形绘画状态
@@ -459,8 +475,8 @@ export default {
       lastX: 0,
       lastY: 0,
       context: null,
-      width: 720,
-      height: 720,
+      width: 720, //720
+      height: 720, //720
       paintWidth: 2, //画笔宽度
       colors: "red",
       colorPicker: "#f00",
@@ -556,12 +572,35 @@ export default {
       clearInterval(this.timerId);
     }
     this.getProjectSave(); //在退出页面时保存项目
-    console.log(
-      "beforeDestroy projectNameState:",
-      this.$store.state.projectNameState
-    );
+    // console.log(
+    //   "beforeDestroy projectNameState:",
+    //   this.$store.state.projectNameState
+    // );
   },
   methods: {
+    async toggle() {
+      await fullscreen.toggle(this.$el.querySelector(".fullscreen-wrapper"), {
+        teleport: this.teleport,
+        callback: (isFullscreen) => {
+          //this.fullscreen = isFullscreen
+          // if (isFullscreen)
+          //   this.$refs.fullscreenContainer.style.height = "100%";
+          // // 设置全屏时的高度
+          // else this.$refs.fullscreenContainer.style.height = "100vh"; // 设置非全屏时的高度
+        },
+      });
+      this.fullscreen = fullscreen.isFullscreen;
+    },
+    // handleFullscreenChange() {
+    //   console.log("进入或退出全屏模式!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    //   if (!document.fullscreenElement) {
+    //     // 如果不是全屏，则不设置高度
+    //     this.$refs.fullscreenContainer.style.height = "100vh";
+    //   } else {
+    //     // 设置全屏时的高度
+    //     this.$refs.fullscreenContainer.style.height = "100%"; //
+    //   }
+    // },
     getProjectDetails() {
       //获取项目详情
       getProjectDetail(this.$route.query.id).then(
@@ -1354,8 +1393,8 @@ export default {
         // 如果无法分配请求数目的字节，则将引发异常。
         byteArrays.push(new Uint8Array(byteNumbers));
       }
-	    return new Blob(byteArrays, {
-	      type: contentType,
+      return new Blob(byteArrays, {
+        type: contentType,
       });
     },
     cancelGenerate() {
@@ -1592,20 +1631,26 @@ export default {
 
 .twoDtothreeD-container {
   width: 100%;
-  height: 100vh;
+  // height: 100vh;
   display: flex;
   color: #fff;
   font-family: AliMedium;
 
   .to-left {
     display: inline-block;
-    width: 1552px;
-    height: 996px;
+    flex: 1;
+    // width: 1552px;
+    // height: 996px;
+    // height: 100%;
     background-color: #d4d4d4;
     .hover-selected-selected {
       //选中状态
       background-color: #5034ff;
       border-radius: 4px;
+    }
+    .left-canvas-toolnavigation {
+      position: relative;
+      height: 100%;
     }
     .panel-white {
       // width: 1322px;
@@ -1643,16 +1688,17 @@ export default {
       width: 100%;
       display: flex;
       justify-content: center;
-      height: 162px;
-      position: relative;
-      top: 114px;
+      height: 64px;
+      position: absolute;
+      // top: 114px;
+      bottom: 22px;
       align-items: center;
 
       .tool-navigation {
         position: absolute;
         width: 640px;
         height: 64px;
-        bottom: 34px;
+        // bottom: 34px;
         background-color: #212123;
         // margin: 91px 0 32px 0;
         border-radius: 32px;
@@ -2292,6 +2338,11 @@ export default {
         box-shadow: 0 8px 20px 0px rgba(236, 236, 236, 0.2);
       }
     }
+  }
+}
+@media screen and (min-height: 1152px) {
+  .twoDtothreeD-container {
+    height: 100%;
   }
 }
 </style>

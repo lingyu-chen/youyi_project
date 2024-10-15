@@ -74,7 +74,7 @@ export default {
   }
 }
 
-/deep/.el-progress-bar__outer {
+::v-deep.el-progress-bar__outer {
   width: 298px;
   height: 4px !important;
   background-color: #242425 !important;

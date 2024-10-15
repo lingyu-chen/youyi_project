@@ -63,7 +63,10 @@
               >
             </div>
             <div class="icon-more" style="cursor: pointer">
-              <i class="el-icon-more" style="transform: rotate(90deg)"></i>
+              <i
+                class="el-icon-more"
+                style="transform: rotate(90deg); margin-right: 12px"
+              ></i>
             </div>
           </div>
         </div>

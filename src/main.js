@@ -9,7 +9,9 @@ import router from './router';
 //引入store
 import store from './store'
 //引入fabric
-import {fabric} from 'fabric';
+import { fabric } from 'fabric';
+//引入全屏组件
+import VueFullscreen from 'vue-fullscreen'
 
 
 Vue.config.productionTip = false
@@ -19,6 +21,8 @@ Vue.use(ElementUI);
 Vue.use(VueRouter);
 //应用fabric
 Vue.use(fabric);
+//应用vue-fullscreen
+Vue.use(VueFullscreen);
 
 new Vue({
     render: h => h(App),

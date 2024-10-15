@@ -1,10 +1,9 @@
 <template>
-	<div id="app">
-
-		<router-view>
-			<!-- <Home></Home> -->
-		</router-view>
-	</div>
+  <div id="app">
+    <router-view>
+      <!-- <Home></Home> -->
+    </router-view>
+  </div>
 </template>
 
 <script>
@@ -15,41 +14,42 @@ import TwoDGeneration from "./components/TwoDGeneration.vue";
 import AIRender from "./components/AIRender.vue";
 
 export default {
-	name: "App",
-	components: {
-		// HelloWorld
-		Index,
-		TwoDGeneration,
-		Home,
-		AIRender
-	},
-	data() {
-		return {};
-	},
-	methods: {},
+  name: "App",
+  components: {
+    // HelloWorld
+    Index,
+    TwoDGeneration,
+    Home,
+    AIRender,
+  },
+  data() {
+    return {
+      screenHeight: window.innerHeight,
+    };
+  },
+  methods: {},
 };
 </script>
 
 <style lang="scss">
 * {
-	/* CSS Reset */
-	margin: 0;
-	padding: 0;
+  /* CSS Reset */
+  margin: 0;
+  padding: 0;
 }
 
 .clear:after {
-	content: "";
-	display: block;
-	clear: both;
-	height: 0;
-	overflow: hidden;
-	visibility: hidden;
+  content: "";
+  display: block;
+  clear: both;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
 }
 
 .clear {
-	zoom: 1;
+  zoom: 1;
 }
-
 // /* 隐藏浏览器自带的滚动条 */
 // ::-webkit-scrollbar {
 //   width: 0 !important;
@@ -141,18 +141,18 @@ export default {
 //   top: 11px;
 // }
 @font-face {
-	font-family: AliMedium;
-	src: url("./assets/font/AlibabaPuHuiTi-2-65-Medium.ttf");
+  font-family: AliMedium;
+  src: url("./assets/font/AlibabaPuHuiTi-2-65-Medium.ttf");
 }
 
 @font-face {
-	font-family: AliRegular;
-	src: url("./assets/font/AlibabaPuHuiTi-2-55-Regular.ttf");
+  font-family: AliRegular;
+  src: url("./assets/font/AlibabaPuHuiTi-2-55-Regular.ttf");
 }
 
 @font-face {
-	font-family: AliBold;
-	src: url("./assets/font/AlibabaPuHuiTi-2-85-Bold.ttf");
+  font-family: AliBold;
+  src: url("./assets/font/AlibabaPuHuiTi-2-85-Bold.ttf");
 }
 
 // #app {
