@@ -4,11 +4,18 @@
 		<div class="component-container">
 			<div class="component-top-bar">
 				<img src="@/assets/tool-box-icons/menu.png" alt="menu"/>
-				<span>椅腿</span>
-				<img src="@/assets/tool-box-icons/arrow-down.png" alt="↓"/>
+				<el-dropdown>
+					<span class="el-dropdown-link">
+					椅腿<i class="el-icon-arrow-down el-icon-right"></i>/
+					</span>
+					<el-dropdown-menu>
+
+					</el-dropdown-menu>
+				</el-dropdown>
 			</div>
 			<div class="component-list">
-				<img v-for="content in componentList" :key="content.pid" :title="content.pname" :src="content.preLink" alt=""/>
+				<img v-for="content in componentList" :key="content.pid" :title="content.pname" :src="content.preLink"
+				     alt=""/>
 			</div>
 		</div>
 		<div class="left-container" ref="threeContainer" @keydown.delete="deleteModel" tabindex="-1">
