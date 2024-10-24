@@ -1,10 +1,25 @@
 <template>
   <div class="login-container">
     <div class="login-left">
-      <img src="../assets/login1.png" alt="" />
+      <!-- <img src="../assets/login1.png" alt="" />
       <img src="../assets/login2.png" alt="" />
       <img src="../assets/login3.png" alt="" />
-      <img src="../assets/login4.png" alt="" />
+      <img src="../assets/login4.png" alt="" /> -->
+      <el-carousel trigger="click" arrow="never" height="1032px">
+        <el-carousel-item v-for="item in carouselImages" :key="item">
+          <div>
+            <img :src="item" alt="" />
+            <div class="mask-layer">
+              <div class="carousel-text">
+                <div class="text-title">面向办公座椅的AIGID方案生成</div>
+                <div class="text-describe">
+                  该工具专注于办公座椅的造型设计，基于AIGID（人工智能生成的工业设计）技术，通过输入基本的设计需求，如风格、代表性造型和，自动生成多样化的造型方案。设计师可以通过工具快速探索不同的椅子造型选项，借助其智能生成能力，快速迭代和优化设计。该工具旨在提高设计效率，帮助设计师在造型创意阶段减少重复工作，并提供丰富的设计灵感来源。
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-carousel-item>
+      </el-carousel>
     </div>
     <div class="login-right">
       <div class="login-card">
@@ -64,6 +79,10 @@
 <script>
 import { userLogin } from "../api/index";
 import { Session } from "@/utils/storage";
+import carouselimage1 from "../assets/carouselimage.png";
+import carouselimage2 from "../assets/carouselimage.png";
+import carouselimage3 from "../assets/carouselimage.png";
+import carouselimage4 from "../assets/carouselimage.png";
 
 export default {
   name: "Login",
@@ -92,6 +111,12 @@ export default {
         name: [{ validator: checkName, trigger: "change" }],
         pass: [{ validator: validatePass, trigger: "change" }],
       },
+      carouselImages: [
+        carouselimage1,
+        carouselimage2,
+        carouselimage3,
+        carouselimage4,
+      ],
     };
   },
   methods: {
@@ -146,6 +171,45 @@ export default {
     // float: left;
     width: 924px;
     margin-right: 12px;
+    .mask-layer {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 74%),
+        rgba(21, 21, 23, 0) 46%,
+        rgba(255, 255, 255, 0)
+      );
+      .carousel-text {
+        position: absolute;
+        left: 24px;
+        right: 24px;
+        bottom: 78px;
+        color: #fff;
+        .text-title {
+          font-family: AliMedium;
+          font-size: 40px;
+        }
+        .text-describe {
+          margin-top: 24px;
+          font-family: AliRegular;
+          font-size: 12px;
+        }
+      }
+    }
+    ::v-deep .el-carousel__indicators--horizontal {
+      transform: translateX(0);
+      left: 20px;
+      bottom: 18px;
+      .el-carousel__button {
+        width: 43px;
+        height: 4px;
+        border-radius: 2px;
+        background-color: #9e9e9e;
+      }
+    }
   }
   .login-right {
     // float: right;

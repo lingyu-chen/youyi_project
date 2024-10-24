@@ -22,5 +22,5 @@ module.exports = defineConfig({
                 appendTsSuffixTo: [/\.vue$/], // ts编译器tsc不能识别.vue文件，所以在 .vue文件后加.ts后缀
             },
         });
-    }
+    },
 })
