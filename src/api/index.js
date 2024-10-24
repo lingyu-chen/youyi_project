@@ -77,12 +77,23 @@ export function getStyleList() {
 
 /**
  * 获取项目详情（TwoGenneration页面）
- * @param params 要传的参数值
+ * @param projectId 项目id
  * @returns 返回接口数据
  */
 export function getProjectDetail(projectId) {
     return request({
         url: '/aigid/v1/project/detail?projectId=' + projectId,
+        method: 'get',
+    })
+}
+
+/**
+ * 获取组件库的类别名
+ * @returns 组件库类别的id和name
+ */
+export function getComponentClass(){
+    return request({
+        url: '/aigid/v1/project/component/class/list',
         method: 'get',
     })
 }

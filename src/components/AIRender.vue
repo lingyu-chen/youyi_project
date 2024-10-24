@@ -1,6 +1,23 @@
 <template>
 
 	<div class="container">
+		<div class="component-container">
+			<div class="component-top-bar">
+				<img src="@/assets/tool-box-icons/menu.png" alt="menu"/>
+				<el-dropdown>
+					<span class="el-dropdown-link">
+					椅腿<i class="el-icon-arrow-down el-icon-right"></i>/
+					</span>
+					<el-dropdown-menu>
+
+					</el-dropdown-menu>
+				</el-dropdown>
+			</div>
+			<div class="component-list">
+				<img v-for="content in componentList" :key="content.pid" :title="content.pname" :src="content.preLink"
+				     alt=""/>
+			</div>
+		</div>
 		<div class="left-container" ref="threeContainer" @keydown.delete="deleteModel" tabindex="-1">
 			<div class="loading-container" v-if="isGenerating||isFinished">
 				<div class="loader" v-if="isGenerating"><i class="el-icon-loading"></i></div>
@@ -64,7 +81,7 @@
 			<div class="separator"></div>
 			<h1 class="option-title">参考图片</h1>
 			<div class="rel-pic-container">
-				<img src="../assets/upload.png" alt="">
+				<img src="@/assets/upload.png" alt="">
 				<label>点击/拖拽 来上传图片（jpeg，png）</label>
 			</div>
 			<div class="separator"></div>
@@ -92,7 +109,7 @@ import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
 import {TransformControls} from "three/addons/controls/TransformControls.js";
 import {
 	cancelTask,
-	fileFinish, fileRelease, findTaskStatus,
+	fileFinish, fileRelease, findTaskStatus, getComponentClass,
 	getProjectDetail,
 	getStyleList,
 	projectSave,
@@ -169,7 +186,16 @@ export default {
 			status: 'EDIT', // EDIT RUNNING FINISHED
 			checkTimer: null,
 			resultUrl: '',
-			runningTaskId: 0
+			runningTaskId: 0,
+			chosenClassId: 1,
+			/**
+			 * cid,cname
+			 */
+			componentClassList: [],
+			/**
+			 * pid,pname,preLink,link
+			 */
+			componentList: []
 		}
 	},
 
@@ -244,13 +270,29 @@ export default {
 					}
 				})
 				window.addEventListener('resize', () => {
-					renderer.setSize(vm.$refs.threeContainer.clientWidth, vm.$refs.threeContainer.clientHeight);
+					const width = vm.$refs.threeContainer === undefined ? 1024 : vm.$refs.threeContainer.clientWidth;
+					const height = vm.$refs.threeContainer === undefined ? 768 : vm.$refs.threeContainer.clientHeight;
+					renderer.setSize(width, height);
 					myRender();
 				})
 				window.addEventListener('click', (event) => {
 					clickModel(width, height, event, vm)
 				});
 			})
+		},
+		getComponentClassList: async function () {
+			const vm = this;
+			await getComponentClass().then(
+				(response) => {
+					vm.componentClassList = response.data.componentClassList;
+					if (vm.componentClassList.length > 0) {
+						vm.chosenClassId = vm.componentClassList[0].cid;
+					}
+				},
+				(error) => {
+					console.log("request component class list error:", error);
+				}
+			)
 		},
 		getProjectDetail: async function () {
 			const vm = this;
@@ -507,6 +549,82 @@ export default {
 	background-color: #d4d4d4;
 	width: 100%;
 	height: 100%;
+}
+
+.component-top-bar {
+	width: 100%;
+	height: 44px;
+	border-radius: 8px 8px 0 0;
+	border-bottom: 1px solid #3D3D3D;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.component-top-bar img {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+}
+
+.component-top-bar span {
+	display: inline;
+	font-size: 16px;
+	color: #ffffff;
+	font-family: AliMedium, serif;
+	margin-left: 8px;
+	margin-right: 2px;
+}
+
+.component-container {
+	position: absolute;
+	background-color: #151517;
+	width: 240px;
+	height: auto;
+	left: 32px;
+	top: 16px;
+	bottom: 32px;
+	margin: auto;
+	border-radius: 8px;
+	z-index: 10;
+	overflow: hidden;
+}
+
+.component-list {
+	margin: 12px;
+	height: calc(100% - 44px - 24px);
+	width: calc(100% - 24px);
+	padding-right: 8px;
+	overflow-y: auto;
+	overflow-x: hidden;
+	display: flex;
+	flex-wrap: wrap;
+	align-content: flex-start;
+}
+
+.component-list > img {
+	width: 104px;
+	height: 104px;
+	margin-right: 8px;
+	margin-bottom: 8px;
+	border-radius: 4px;
+}
+
+.component-list > img:nth-child(2n) {
+	margin-right: 0;
+}
+
+/* 悬浮效果 */
+.component-list img:hover {
+	transform: scale(1.05); /* 图片放大到原大小的105% */
+	z-index: 2; /* 确保悬浮的图片在其他图片之上 */
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* 添加阴影效果 */
+}
+
+/* 点击效果 */
+.component-list img:active {
+	transform: scale(0.98); /* 图片缩小到原大小的98% */
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* 减弱阴影效果 */
 }
 
 .left-container {
