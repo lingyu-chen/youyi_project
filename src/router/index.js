@@ -8,6 +8,7 @@ import Generation from '../components/TwoDGeneration'
 import CanvasTest from '../components/CanvasTest'
 import CanvasTestTwo from '../components/CanvasTestTwo'
 import AIRender from "../components/AIRender.vue";
+import YouyiAI from '../components/YouyiAI.vue'
 
 //创建并暴露一个路由器
 export default new VueRouter({
@@ -47,6 +48,11 @@ export default new VueRouter({
                 //     component: Generation
                 // },
             ]
+        },
+        {
+            path: '/youyiAI',
+            name: 'YouyiAI',
+            component: YouyiAI
         },
         {
             path: '/canvasTest',

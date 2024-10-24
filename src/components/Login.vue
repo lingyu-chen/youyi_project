@@ -6,14 +6,18 @@
       <img src="../assets/login3.png" alt="" />
       <img src="../assets/login4.png" alt="" /> -->
       <el-carousel trigger="click" arrow="never" height="1032px">
-        <el-carousel-item v-for="item in carouselImages" :key="item">
+        <el-carousel-item
+          v-for="item in carouselImages"
+          :key="item"
+          style="border-radius: 8px"
+        >
           <div>
-            <img :src="item" alt="" />
+            <img :src="item.imgsrc" alt="" />
             <div class="mask-layer">
               <div class="carousel-text">
-                <div class="text-title">面向办公座椅的AIGID方案生成</div>
+                <div class="text-title">{{ item.bigTitle }}</div>
                 <div class="text-describe">
-                  该工具专注于办公座椅的造型设计，基于AIGID（人工智能生成的工业设计）技术，通过输入基本的设计需求，如风格、代表性造型和，自动生成多样化的造型方案。设计师可以通过工具快速探索不同的椅子造型选项，借助其智能生成能力，快速迭代和优化设计。该工具旨在提高设计效率，帮助设计师在造型创意阶段减少重复工作，并提供丰富的设计灵感来源。
+                  {{ item.smallTitle }}
                 </div>
               </div>
             </div>
@@ -79,10 +83,10 @@
 <script>
 import { userLogin } from "../api/index";
 import { Session } from "@/utils/storage";
-import carouselimage1 from "../assets/carouselimage.png";
-import carouselimage2 from "../assets/carouselimage.png";
-import carouselimage3 from "../assets/carouselimage.png";
-import carouselimage4 from "../assets/carouselimage.png";
+import carouselimage1 from "../assets/carouselimage1.png";
+import carouselimage2 from "../assets/carouselimage2.png";
+import carouselimage3 from "../assets/carouselimage3.png";
+import carouselimage4 from "../assets/carouselimage4.png";
 
 export default {
   name: "Login",
@@ -112,10 +116,30 @@ export default {
         pass: [{ validator: validatePass, trigger: "change" }],
       },
       carouselImages: [
-        carouselimage1,
-        carouselimage2,
-        carouselimage3,
-        carouselimage4,
+        {
+          imgsrc: carouselimage1,
+          bigTitle: "面向厨电产品的AIGID方案生成",
+          smallTitle:
+            "该工具专注于厨电产品领域的智能化设计方案生成，通过大规模数据驱动的生成模型，自动化生成符合市场趋势与用户需求的多维设计方案，涵盖从美学风格到功能布局的全方位智能设计支持。通过AI技术提升设计过程中的效率与创新性，实现设计从灵感捕捉到方案落地的全链路智能优化，帮助设计师在造型创意阶段减少重复工作，加速产品研发迭代。",
+        },
+        {
+          imgsrc: carouselimage2,
+          bigTitle: "面向办公座椅的AIGID方案生成",
+          smallTitle:
+            "该工具专注于办公座椅的造型设计，基于AIGID（人工智能生成的工业设计）技术，通过输入基本的设计需求，如风格、代表性造型和，自动生成多样化的造型方案。设计师可以通过工具快速探索不同的椅子造型选项，借助其智能生成能力，快速迭代和优化设计。该工具旨在提高设计效率，帮助设计师在造型创意阶段减少重复工作，并提供丰富的设计灵感来源。",
+        },
+        {
+          imgsrc: carouselimage3,
+          bigTitle: "面向汽车的AIGID方案生成",
+          smallTitle:
+            "该工具专注于汽车外观和内饰设计，基于AIGID技术，通过输入设计需求如风格、造型和功能，自动生成多样化的方案，帮助设计师快速探索不同的设计选项。工具涵盖车身外形和内饰布局，支持从整体造型到细节优化的设计生成，满足不同风格和功能需求。通过智能生成和快速迭代，该工具可提升设计效率，减少重复性工作，激发设计灵感，为汽车外观和内饰设计提供高效的创意支持。",
+        },
+        {
+          imgsrc: carouselimage4,
+          bigTitle: "面向军工产品的AIGID方案生成",
+          smallTitle:
+            "该工具专注于军工产品的外观和内部方舱设计，基于AIGID技术，通过输入具体的设计需求如功能要求、整体布局或大致草图，自动生成多样化的方案。帮助设计师快速探索不同的设计方案，满足各种复杂的功能性和安全性需求。工具涵盖整体外形、内部布局以及部分组件的设计生成，从初步概念到细节优化的全过程中提供支持。通过智能生成和快速迭代，该工具可显著提升设计效率，减少重复性工作，并激发创新思维，为军工产品外观和内部结构设计提供高效的创意支持。",
+        },
       ],
     };
   },
