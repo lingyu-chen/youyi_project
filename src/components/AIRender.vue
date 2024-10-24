@@ -1,6 +1,11 @@
 <template>
 
 	<div class="container">
+		<div class="return-container">
+			<img @click="leaveAndSave()" src="@/assets/tool-box-icons/return.png" alt="" class="return-icon">
+			<span class="split">/</span>&nbsp;
+			<span class="project-name">{{ projectName }}</span>
+		</div>
 		<div class="component-container">
 			<div class="component-top-bar">
 				<img src="@/assets/tool-box-icons/menu.png" alt="menu"/>
@@ -379,7 +384,57 @@ export default {
 			return mode === this.transformMode && this.selectedModel != null;
 		},
 		leaveAndSave: async function () {
+			const vm = this;
+			const renderedPicBlob = this.getRenderedPic();
+			projectSave({
+				id: this.projectId,
+				name: this.projectName,
+				prompt: this.prompts.split(','),
+				aiRate: this.aiRate / 100.0,
+				style: this.chosenStyle,
+				modified: true,
+				randomSeed: this.keepStyle ? this.projectId : new Date().getTime()
+			}).then(
+				async (response) => {
+					await response.data.uploadParams.map(async (element) => {
+						const tag = element.tag;
+						const fileId = element.fileId;
+						const hostUrl = element.hostUrl;
+						if (tag === 'canvas') {
+							return uploadFile(hostUrl, vm.base64ToBlob({
+								b64data: renderedPicBlob,
+								contentType: "image/png"
+							})).then(async (result) => {
+								console.log(result);
+								await vm.fileFinishFunc(tag, fileId, this.projectId);
+							}, (error) => {
+								console.log(error);
 
+							});
+						} else {
+							return this.getModelBlob().then(blob => {
+								uploadModelFile(hostUrl, blob).then(async (result) => {
+									console.log(result);
+									await vm.fileFinishFunc(tag, fileId, this.projectId);
+
+								}, (error) => {
+									console.log(error);
+
+								}).catch(error => {
+									console.log(error);
+								});
+							})
+						}
+
+					})
+					vm.$router.go(-1);
+
+				},
+				(error) => {
+					console.log("上传文件失败", error)
+					vm.setError();
+				}
+			)
 		},
 		generateStart: async function () {
 			const vm = this;
@@ -607,6 +662,40 @@ export default {
 	background-color: #d4d4d4;
 	width: 100%;
 	height: 100%;
+}
+
+.return-container {
+	position: fixed;
+	left: 244px;
+	top: 22px;
+	padding-left: 16px;
+	width: 141px;
+	height: 40px;
+	background-color: transparent;
+	margin: auto;
+	border-left: 1px solid #3D3D3D;
+	z-index: 11;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.return-icon {
+	cursor: pointer;
+	width: 24px;
+	height: 24px;
+}
+
+span.split {
+	color: #3D3D3D;
+	font-family: AliMedium, sans-serif;
+	font-size: 20px;
+}
+
+span.project-name {
+	color: white;
+	font-family: AliMedium, sans-serif;
+	font-size: 20px;
 }
 
 .component-top-bar {
