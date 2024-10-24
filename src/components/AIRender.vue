@@ -4,17 +4,18 @@
 		<div class="component-container">
 			<div class="component-top-bar">
 				<img src="@/assets/tool-box-icons/menu.png" alt="menu"/>
-				<el-dropdown>
-					<span class="el-dropdown-link">
-					椅腿<i class="el-icon-arrow-down el-icon-right"></i>/
-					</span>
-					<el-dropdown-menu>
-
-					</el-dropdown-menu>
-				</el-dropdown>
+				<el-select class="component-class-selector" v-model="chosenClassId" placeholder="请选择组件">
+					<el-option
+						v-for="item in componentClassList"
+						:key="item.cid"
+						:label="item.cname"
+						:value="item.cid"
+					></el-option>
+				</el-select>
 			</div>
 			<div class="component-list">
 				<img v-for="content in componentList" :key="content.pid" :title="content.pname" :src="content.preLink"
+				     @click="addComponent3D(content.link)"
 				     alt=""/>
 			</div>
 		</div>
@@ -109,7 +110,7 @@ import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
 import {TransformControls} from "three/addons/controls/TransformControls.js";
 import {
 	cancelTask,
-	fileFinish, fileRelease, findTaskStatus, getComponentClass,
+	fileFinish, fileRelease, findTaskStatus, getComponentClass, getComponentContent,
 	getProjectDetail,
 	getStyleList,
 	projectSave,
@@ -118,7 +119,6 @@ import {
 	uploadModelFile
 } from "@/api";
 import {GLTFExporter} from 'three/examples/jsm/exporters/GLTFExporter.js';
-
 
 /* Three.JS Scene Properties Start */
 
@@ -149,8 +149,8 @@ function myRender() {
 
 function clickModel(width, height, event, vm) {
 	// 计算鼠标位置 (0到1)
-	mouseVector.x = (event.clientX / width) * 2 - 1;
-	mouseVector.y = -(event.clientY / height) * 2 + 1;
+	mouseVector.x = (event.offsetX / width) * 2 - 1;
+	mouseVector.y = -(event.offsetY / height) * 2 + 1;
 
 	// 更新 Raycaster
 	rayCaster.setFromCamera(mouseVector, camera);
@@ -174,6 +174,7 @@ export default {
 	data() {
 		return {
 			aiRate: 90,
+			model3dCnt: 0,
 			prompts: '',
 			projectId: this.$route.query.id,
 			projectName: "",
@@ -185,9 +186,10 @@ export default {
 			chosenStyle: 1,
 			status: 'EDIT', // EDIT RUNNING FINISHED
 			checkTimer: null,
+			isControlling: false,
 			resultUrl: '',
 			runningTaskId: 0,
-			chosenClassId: 1,
+			chosenClassId: null,
 			/**
 			 * cid,cname
 			 */
@@ -219,22 +221,31 @@ export default {
 			return this.status === 'FINISHED';
 		}
 	},
+	watch: {
+		chosenClassId: function (newClassId) {
+			this.getComponentContentList(newClassId);
+		}
+	},
 	methods: {
 		loadModel3D: function (url) {
 			const vm = this;
 			if (url == null || url === '') {
 				url = "https://compare-patch1-1258190691.cos.ap-shanghai.myqcloud.com/youyi_resources/models/chair_demo.glb";
 			}
+
 			loader.load(url, function (glb) {
 				const loadedModel = glb.scene;
-				loadedModel.traverse(function (child) {
+				const objNamePre = "object";
+				loadedModel.traverse(child => {
 					if (child.isMesh) {
-						child.material = customMaterial;
+						child.material = customMaterial
+						child.name = objNamePre + vm.model3dCnt;
+						vm.model3dCnt++;
+						models.push(child)
 					}
 				})
 				const width = vm.$refs.threeContainer.clientWidth, height = vm.$refs.threeContainer.clientHeight;
 				camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-				models.push(loadedModel);
 				scene.add(loadedModel);
 				light.position.set(0, 10, 0);
 				camera.position.set(0, 5, 5)
@@ -245,9 +256,16 @@ export default {
 				renderer.setClearColor(0xD4D4D4, 1)
 				vm.$refs.threeContainer.appendChild(renderer.domElement);
 				orbitControls = new OrbitControls(camera, renderer.domElement);
+				orbitControls.addEventListener('start', function () {
+					vm.isControlling = true;
+				})
+				orbitControls.addEventListener('end', function () {
+					vm.isControlling = false;
+				})
 				orbitControls.addEventListener('change', function () {
 					myRender();
 				})
+
 
 				transformControls = new TransformControls(camera, renderer.domElement);
 				transformControls.attach(loadedModel);
@@ -256,43 +274,80 @@ export default {
 				transformControls.addEventListener('change', function () {
 					myRender();
 				})
+				transformControls.addEventListener('start', function () {
+					vm.isControlling = true;
+				})
+				transformControls.addEventListener('end', function () {
+					vm.isControlling = false;
+				})
 				transformControls.addEventListener('dragging-changed', (e) => {
 					orbitControls.enabled = !e.value;
 				})
 				scene.add(transformControls);
+				scene.updateMatrixWorld(true);
 				myRender();
-				orbitControls.addEventListener('start', function () {
-					window.onclick = null;
-				})
-				orbitControls.addEventListener('end', function () {
-					window.onclick = function (e) {
-						clickModel(width, height, e, vm);
-					}
-				})
 				window.addEventListener('resize', () => {
 					const width = vm.$refs.threeContainer === undefined ? 1024 : vm.$refs.threeContainer.clientWidth;
 					const height = vm.$refs.threeContainer === undefined ? 768 : vm.$refs.threeContainer.clientHeight;
 					renderer.setSize(width, height);
 					myRender();
 				})
-				window.addEventListener('click', (event) => {
-					clickModel(width, height, event, vm)
-				});
+				renderer.domElement.addEventListener('click', (event) => {
+					if (!vm.isControlling) {
+						clickModel(renderer.domElement.clientWidth, renderer.domElement.clientHeight, event, vm)
+					}
+
+				}, false);
+				vm.getComponentClassList();
 			})
+		},
+		addComponent3D: function (url) {
+			const vm = this;
+			if (url == null && url === '') {
+				console.log("component url is empty");
+				return;
+			}
+			loader.load(url, function (glb) {
+				const loadedModel = glb.scene;
+				loadedModel.traverse(function (child) {
+					if (child.isMesh) {
+						child.material = customMaterial;
+						child.name = "insert" + vm.model3dCnt;
+						vm.model3dCnt++;
+						models.push(child);
+					}
+				})
+				let cameraLocation = camera.position.clone();
+				loadedModel.position.set(cameraLocation.x, cameraLocation.y, cameraLocation.z);
+				loadedModel.scale.set(0.2, 0.2, 0.2);
+				vm.selectedModel = loadedModel;
+				scene.add(loadedModel);
+				transformControls.setMode(vm.transformMode);
+				transformControls.attach(loadedModel);
+				myRender();
+			});
 		},
 		getComponentClassList: async function () {
 			const vm = this;
 			await getComponentClass().then(
 				(response) => {
-					vm.componentClassList = response.data.componentClassList;
-					if (vm.componentClassList.length > 0) {
-						vm.chosenClassId = vm.componentClassList[0].cid;
-					}
+					vm.componentClassList = response.data;
 				},
 				(error) => {
 					console.log("request component class list error:", error);
 				}
 			)
+		},
+		getComponentContentList: async function (classId) {
+			const vm = this;
+			await getComponentContent(classId).then(
+				(response) => {
+					vm.componentList = response.data;
+				},
+				(error) => {
+					console.log("request component content list error:", error)
+				}
+			);
 		},
 		getProjectDetail: async function () {
 			const vm = this;
@@ -322,6 +377,9 @@ export default {
 		},
 		isToolActive: function (mode) {
 			return mode === this.transformMode && this.selectedModel != null;
+		},
+		leaveAndSave: async function () {
+
 		},
 		generateStart: async function () {
 			const vm = this;
@@ -529,8 +587,8 @@ export default {
 		},
 		deleteModel: function () {
 			if (this.selectedModel != null) {
+				this.selectedModel.parent.remove(this.selectedModel);
 				transformControls.detach(this.selectedModel);
-				scene.remove(this.selectedModel);
 				models = models.filter((item) => item !== this.selectedModel);
 				this.selectedModel = null;
 				myRender();
@@ -559,6 +617,25 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+}
+
+.component-class-selector {
+	width: 120px;
+}
+
+::v-deep .component-class-selector .el-input__inner {
+	font-size: 16px;
+	color: white;
+	font-family: AliMedium, sans-serif;
+	text-align: center;
+	background-color: transparent;
+	border: none;
+}
+
+.component-class-selector .el-select-dropdown__item {
+	font-size: 16px;
+	font-family: AliMedium, sans-serif;
+	text-align: center;
 }
 
 .component-top-bar img {

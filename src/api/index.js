@@ -91,9 +91,21 @@ export function getProjectDetail(projectId) {
  * 获取组件库的类别名
  * @returns 组件库类别的id和name
  */
-export function getComponentClass(){
+export function getComponentClass() {
     return request({
-        url: '/aigid/v1/project/component/class/list',
+        url: '/aigid/v1/project/components/class/list',
+        method: 'get',
+    })
+}
+
+/**
+ * 获取指定组件类别的全部组件
+ * @param classId
+ * @returns 该组件类别下所有组件的id,name,预览图链接和模型文件链接
+ */
+export function getComponentContent(classId) {
+    return request({
+        url: '/aigid/v1/project/components/content/list?cid=' + classId,
         method: 'get',
     })
 }
